@@ -1,0 +1,473 @@
+SQL Practice – Patients & Admissions
+
+Bộ bài tập SQL cơ bản sử dụng hai bảng chính:
+
+patients: thông tin bệnh nhân
+admissions: thông tin nhập viện
+
+Mục tiêu:
+
+Ôn tập SELECT
+Lọc dữ liệu với WHERE
+LIKE, BETWEEN, IN
+NULL
+UPDATE
+Hàm CONCAT(), COUNT(), MAX()
+INNER JOIN
+Subquery
+1. Lọc bệnh nhân theo giới tính
+Query
+SELECT first_name, last_name, gender
+FROM patients
+WHERE gender = 'M';
+Giải thích
+
+Lấy ra:
+
+first_name: tên
+last_name: họ
+gender: giới tính
+
+Chỉ lấy những bệnh nhân có gender = 'M'.
+
+Cần nhớ
+WHERE column = value
+
+Dùng WHERE để lọc các dòng thỏa mãn điều kiện.
+
+2. Lấy toàn bộ bệnh nhân
+SELECT *
+FROM patients;
+Giải thích
+
+* nghĩa là lấy tất cả các cột trong bảng patients.
+
+Cần nhớ
+SELECT *
+FROM table_name;
+
+Khi làm project thực tế, không nên lạm dụng SELECT *. Thường nên chỉ lấy những cột cần thiết.
+
+3. Tìm bệnh nhân không có thông tin dị ứng
+SELECT first_name, last_name
+FROM patients
+WHERE allergies IS NULL;
+Giải thích
+
+NULL không thể kiểm tra bằng:
+
+allergies = NULL
+
+Mà phải dùng:
+
+IS NULL
+Cần nhớ
+
+Kiểm tra NULL:
+
+IS NULL
+
+Kiểm tra không phải NULL:
+
+IS NOT NULL
+4. Tìm bệnh nhân có tên bắt đầu bằng chữ C
+SELECT first_name
+FROM patients
+WHERE first_name LIKE 'C%';
+Giải thích
+
+LIKE dùng để tìm kiếm theo pattern.
+
+C% nghĩa là:
+
+bắt đầu bằng C
+phía sau có thể có bất kỳ ký tự nào
+
+Ví dụ:
+
+Charlie
+Chris
+Catherine
+
+đều có thể được tìm thấy.
+
+Cần nhớ
+'C%'
+
+Bắt đầu bằng C.
+
+'%C'
+
+Kết thúc bằng C.
+
+'%C%'
+
+Có chứa C ở bất kỳ vị trí nào.
+
+5. Tìm bệnh nhân có cân nặng từ 100 đến 200
+SELECT first_name, last_name
+FROM patients
+WHERE weight BETWEEN 100 AND 200;
+Giải thích
+
+BETWEEN dùng để kiểm tra một giá trị nằm trong một khoảng.
+
+BETWEEN 100 AND 200
+
+bao gồm cả 100 và 200.
+
+Tương đương
+WHERE weight >= 100
+  AND weight <= 200;
+Cần nhớ
+WHERE column BETWEEN min AND max;
+6. Cập nhật bệnh nhân chưa có thông tin dị ứng
+UPDATE patients
+SET allergies = 'NKA'
+WHERE allergies IS NULL;
+Giải thích
+
+Thay tất cả giá trị NULL trong cột allergies thành:
+
+NKA
+
+NKA thường được hiểu là:
+
+No Known Allergies – Không ghi nhận dị ứng.
+
+Cấu trúc:
+
+UPDATE table_name
+SET column = value
+WHERE condition;
+⚠️ Quan trọng
+
+Luôn cẩn thận với UPDATE.
+
+Nếu viết:
+
+UPDATE patients
+SET allergies = 'NKA';
+
+thì tất cả bệnh nhân sẽ bị cập nhật.
+
+7. Ghép họ và tên thành một cột
+SELECT CONCAT(first_name, ' ', last_name) AS full_name
+FROM patients;
+Giải thích
+
+CONCAT() dùng để nối nhiều chuỗi lại với nhau.
+
+Ví dụ:
+
+first_name = John
+last_name = Smith
+
+Kết quả:
+
+John Smith
+
+AS full_name đặt tên cho cột kết quả là full_name.
+
+Cần nhớ
+CONCAT(value1, value2, value3)
+
+Đặt alias:
+
+AS column_name
+8. JOIN bệnh nhân với tỉnh/thành phố
+SELECT
+    p.first_name,
+    p.last_name,
+    pn.province_name
+FROM patients p
+INNER JOIN province_names pn
+    ON p.province_id = pn.province_id;
+Giải thích
+
+Có hai bảng:
+
+patients
+    |
+    | province_id
+    ↓
+province_names
+
+patients.province_id dùng để liên kết với:
+
+province_names.province_id
+
+p và pn là alias:
+
+patients p
+province_names pn
+
+Vì vậy:
+
+p.first_name
+
+có nghĩa là:
+
+cột first_name của bảng patients
+
+Cần nhớ
+
+Cấu trúc cơ bản:
+
+SELECT ...
+FROM table1
+INNER JOIN table2
+    ON table1.id = table2.id;
+
+INNER JOIN chỉ lấy những dòng có dữ liệu khớp ở cả hai bảng.
+
+9. Đếm bệnh nhân sinh trong năm 2010
+SELECT COUNT(patient_id) AS total_patient
+FROM patients
+WHERE birth_date >= '2010-01-01'
+  AND birth_date <= '2010-12-31';
+Giải thích
+
+COUNT() dùng để đếm số lượng.
+
+Điều kiện:
+
+birth_date >= '2010-01-01'
+AND birth_date <= '2010-12-31'
+
+nghĩa là ngày sinh nằm trong năm 2010.
+
+Kết quả được đặt tên:
+
+total_patient
+Cần nhớ
+COUNT(column)
+
+Đếm số giá trị không phải NULL trong column.
+
+10. Tìm bệnh nhân cao nhất
+SELECT first_name, last_name, height
+FROM patients
+WHERE height = (
+    SELECT MAX(height)
+    FROM patients
+);
+Giải thích
+
+Đây là Subquery – truy vấn nằm bên trong một truy vấn khác.
+
+Truy vấn bên trong:
+
+SELECT MAX(height)
+FROM patients;
+
+Tìm chiều cao lớn nhất.
+
+Ví dụ:
+
+MAX(height) = 190
+
+Sau đó truy vấn bên ngoài trở thành:
+
+WHERE height = 190;
+
+→ tìm bệnh nhân có chiều cao 190.
+
+Cần nhớ
+
+Khi cần lấy dữ liệu dựa trên kết quả của một query khác, có thể sử dụng:
+
+WHERE column = (
+    SELECT ...
+);
+11. Tìm bệnh nhân theo danh sách ID
+SELECT *
+FROM patients
+WHERE patient_id IN (1, 45, 534, 879, 1000);
+Giải thích
+
+IN dùng để kiểm tra một giá trị có nằm trong một danh sách hay không.
+
+Thay vì:
+
+WHERE patient_id = 1
+   OR patient_id = 45
+   OR patient_id = 534
+   OR patient_id = 879
+   OR patient_id = 1000;
+
+có thể viết ngắn gọn:
+
+WHERE patient_id IN (1, 45, 534, 879, 1000);
+Cần nhớ
+WHERE column IN (value1, value2, value3);
+Admissions
+12. Đếm tổng số lần nhập viện
+SELECT COUNT(*) AS total_admissions
+FROM admissions;
+Giải thích
+
+COUNT(*) đếm số dòng trong bảng admissions.
+
+Mỗi dòng đại diện cho một lần nhập viện.
+
+Ví dụ:
+
+total_admissions
+----------------
+500
+
+→ Có tổng cộng 500 lượt nhập viện.
+
+Cần nhớ
+COUNT(*)
+
+thường dùng để đếm số dòng.
+
+13. Tìm những lần nhập viện trong ngày xuất viện
+SELECT *
+FROM admissions
+WHERE admission_date = discharge_date;
+Giải thích
+
+So sánh hai cột:
+
+admission_date
+discharge_date
+
+Nếu hai ngày giống nhau:
+
+admission_date = 2026-01-10
+discharge_date = 2026-01-10
+
+→ Bệnh nhân nhập viện và xuất viện trong cùng một ngày.
+
+14. Đếm số lần bệnh nhân ID = 579 nhập viện
+SELECT
+    patient_id,
+    COUNT(admission_date) AS total_admissions
+FROM admissions
+WHERE patient_id = 579
+GROUP BY patient_id;
+Giải thích
+
+Đầu tiên:
+
+WHERE patient_id = 579
+
+chỉ lấy các lần nhập viện của bệnh nhân 579.
+
+Sau đó:
+
+COUNT(admission_date)
+
+đếm số lần nhập viện.
+
+GROUP BY patient_id gom các dòng của bệnh nhân 579 lại thành một nhóm.
+
+Cần nhớ
+
+Khi sử dụng hàm tổng hợp như:
+
+COUNT()
+SUM()
+AVG()
+MAX()
+MIN()
+
+và muốn tính theo từng nhóm, thường sẽ cần:
+
+GROUP BY
+🧠 SQL Cheat Sheet
+SELECT
+
+Lấy dữ liệu:
+
+SELECT column1, column2
+FROM table_name;
+
+Lấy tất cả:
+
+SELECT *
+FROM table_name;
+WHERE
+
+Lọc dữ liệu:
+
+WHERE age > 18
+
+Nhiều điều kiện:
+
+WHERE age > 18
+  AND gender = 'M';
+
+Hoặc:
+
+WHERE gender = 'M'
+   OR gender = 'F';
+NULL
+WHERE column IS NULL;
+WHERE column IS NOT NULL;
+
+Không dùng:
+
+column = NULL
+LIKE
+LIKE 'A%'
+
+Bắt đầu bằng A.
+
+LIKE '%A'
+
+Kết thúc bằng A.
+
+LIKE '%A%'
+
+Có chứa A.
+
+BETWEEN
+WHERE age BETWEEN 18 AND 30;
+
+Tương đương:
+
+WHERE age >= 18
+  AND age <= 30;
+IN
+WHERE id IN (1, 2, 3, 4);
+COUNT
+
+Đếm dòng:
+
+COUNT(*)
+
+Đếm giá trị không NULL:
+
+COUNT(column)
+MAX / MIN
+MAX(height)
+
+Giá trị lớn nhất.
+
+MIN(height)
+
+Giá trị nhỏ nhất.
+
+CONCAT
+CONCAT(first_name, ' ', last_name)
+
+Nối chuỗi.
+
+JOIN
+SELECT ...
+FROM table1
+INNER JOIN table2
+    ON table1.id = table2.id;
+
+Dùng để lấy dữ liệu liên quan từ nhiều bảng.
+
+GROUP BY
+SELECT patient_id, COUNT(*)
+FROM admissions
+GROUP BY patient_id;
+
+Dùng để gom các dòng thành từng nhóm trước khi tính toán.
