@@ -1,0 +1,23 @@
+1. Cơ chế hoạt động (Bảng Băm - Hash Table)
+Không có chỉ số (No Index): Không giống như List,
+ bạn không thể dùng lệnh .get(1) hay .get(2) trong HashSet.
+  Các phần tử không xếp hàng theo số thứ tự.
+Thuật toán Băm (Hashing): Khi bạn thêm chữ "An" vào, máy tính
+ sẽ đem chữ "An" đi băm (tính toán bằng một công thức toán học) 
+ ra một con số (gọi là HashCode). Con số này chính là "địa chỉ 
+ nhà" của "An" trong bộ nhớ.
+Lần sau, nếu bạn thêm chữ "An" lần nữa, máy tính lại tính ra 
+đúng cái "địa chỉ nhà" đó, nó ngó vào thấy có người ở rồi nên nó bảo: "À, phần tử này tồn tại rồi" và từ chối thêm vào.
+2. Ưu điểm (Thánh tìm kiếm)
+Tìm kiếm CỰC KỲ NHANH (Nhanh nhất trong các loại): Nếu bạn có 1 
+triệu phần tử, và muốn kiểm tra xem "Tuan" có trong danh sách hay 
+không (.contains("Tuan")). Thay vì phải đi hỏi từng người như List,
+ HashSet chỉ cần đem chữ "Tuan" đi tính toán là ra ngay địa chỉ, đến
+  gõ cửa 1 phát là biết có hay không. Thời gian tốn đúng $O(1)$.
+Tự động lọc trùng lặp: Rất tuyệt vời để làm các tính năng như: Danh
+ sách ID người dùng đã click quảng cáo, Danh sách các email duy nhất...
+3. Nhược điểm
+Không nhớ thứ tự: Như bạn đã thấy, nó xáo trộn lung tung. Không thể 
+biết ai vào trước, ai vào sau.
+Không thể lấy phần tử bằng vị trí: Không có lệnh .get(). Bạn chỉ có
+ thể duyệt qua toàn bộ danh sách bằng vòng lặp (như for-each).

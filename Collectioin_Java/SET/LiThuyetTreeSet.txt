@@ -1,0 +1,7 @@
+Lý thuyết TreeSet
+Cơ chế hoạt động: Sử dụng cấu trúc dữ liệu Cây đỏ đen (Red-Black Tree). 
+Mỗi khi thêm một phần tử mới, nó sẽ tự động so sánh với các phần tử đã có để tìm ra vị trí đứng phù hợp.
+Ưu điểm: Tự động sắp xếp các phần tử (theo bảng chữ cái, hoặc từ bé đến lớn). Vẫn giữ được đặc tính cốt 
+lõi của Set là không cho phép trùng lặp.
+Nhược điểm: Tốc độ thêm (add), xóa (remove), và tìm kiếm (contains) chậm hơn HashSet (Thời gian $O(\log n)$ 
+thay vì $O(1)$) vì phải tốn công so sánh để sắp xếp chỗ ngồi.

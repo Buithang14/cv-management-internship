@@ -35,5 +35,16 @@ public class LinkedListExample {
         String firstTask = linkedList.pollFirst();
         System.out.println("Viec dau tien trong danh sach:" + firstTask);
         System.out.println("Danh sach sau khi lay ra va xoa viec dau tien:" + linkedList);
+        // lấy ra và xóa việc cuối cùng trong danh sách
+        String lastTask = linkedList.pollLast();
+        System.out.println("Viec cuoi cung trong danh sach:" + lastTask);
+        System.out.println("Danh sach sau khi lay ra va xoa viec cuoi cung:" + linkedList);
+        // thêm vào vị trí số 1
+        linkedList.add(1, "Coding");
+        System.out.println("Danh sach sau khi them vao vi tri so 1:" + linkedList);
+        // xóa việc ở vị trí số 1
+        linkedList.remove(1);
+        System.out.println("Danh sach sau khi xoa viec o vi tri so 1:" + linkedList);
+
     }
 }

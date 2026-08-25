@@ -1,0 +1,16 @@
+1. Cơ chế hoạt động (Danh sách liên kết kép)
+Không giống như Mảng, các phần tử của LinkedList nằm rải rác khắp nơi trong bộ nhớ máy tính (không đứng cạnh nhau).
+Mỗi phần tử (được gọi là một Node - mắt xích) sẽ chứa 3 thứ:
+Dữ liệu của nó (Ví dụ: chữ "Học Java").
+Một sợi dây (con trỏ) nối với người đứng TRƯỚC nó.
+Một sợi dây (con trỏ) nối với người đứng SAU nó.
+Nhờ nắm tay nhau thành một chuỗi như vậy, chúng tạo thành một danh sách. Nếu một người muốn rời khỏi hàng, hai người đứng cạnh chỉ cần buông tay người đó ra và nắm tay nhau là xong. Không ai phải di chuyển chỗ đứng cả.
+2. Ưu điểm (Vua của các thao tác 2 đầu)
+Thêm và Xóa vô cùng nhanh: Như đã nói, chỉ cần đổi chỗ móc nối của các "sợi dây", không có bất kỳ cuộc đại di dân nào xảy ra cả. (Thời gian O(1)).
+Đặc biệt nhanh ở 2 đầu: Vì LinkedList luôn nhớ mặt kẻ đứng đầu và kẻ đứng bét, nên việc gọi addFirst(), addLast(), removeFirst(), removeLast() là siêu tốc. Rất lý tưởng để làm Hàng đợi (Queue) hoặc Ngăn xếp (Stack).
+3. Nhược điểm (Điểm yếu chí mạng)
+-Đọc/Tìm kiếm cực kỳ chậm: Nếu bạn gọi lệnh .get(500), máy tính mù tịt không biết vị trí 500 ở đâu. Nó phải bắt đầu từ người số 0, dò dây sang người số 1, dò sang người số 2... cho đến người 500. (Thời gian O(n)).
+-Tốn RAM (bộ nhớ) hơn ArrayList: Vì mỗi một phần tử không chỉ chứa dữ liệu, mà còn phải cõng thêm 2 "sợi dây" (con trỏ) để nhớ người trước và người sau, nên LinkedList phình to trong bộ nhớ nhanh hơn ArrayList.
+4. Bảng Tổng kết (Nên chọn ai?)
+-Dùng ArrayList khi: Ứng dụng của bạn thiên về TÌM KIẾM, ĐỌC, LẤY dữ liệu ra xem (đọc báo, xem danh sách sản phẩm, bảng xếp hạng...). Dữ liệu ít khi bị xóa hay chèn vào giữa.
+-Dùng LinkedList khi: Ứng dụng của bạn thao tác THÊM/XÓA liên tục ở 2 đầu (hàng đợi xử lý tin nhắn, lịch sử Undo/Redo trình duyệt web, danh sách phát nhạc...). Mức độ đọc và tìm kiếm rất ít.
