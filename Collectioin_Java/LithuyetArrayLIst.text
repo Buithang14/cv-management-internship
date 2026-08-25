@@ -1,0 +1,23 @@
+1. Cơ chế hoạt động (Tại sao gọi là Mảng động?)
+Khi bạn viết code new ArrayList<>(), bên dưới lớp vỏ, Java sẽ bí mật tạo ra một chiếc Mảng (Array) bình thường với kích thước mặc định là 10 ô trống.
+Khi bạn dùng .add(), nó sẽ bỏ dữ liệu vào từng ô một.
+Điều kỳ diệu xảy ra khi mảng bị đầy: Nếu mảng đã chứa đủ 10 phần tử, mà bạn lại .add() thêm phần tử thứ 11 thì sao? Lúc này, ArrayList sẽ lén lút làm 3 việc:
+Tạo ra một chiếc mảng mới to hơn (thường là to gấp rưỡi, tức là 15 ô).
+Bê (copy) toàn bộ 10 phần tử từ mảng cũ sang mảng mới.
+Thêm phần tử thứ 11 vào mảng mới, và "vứt bỏ" chiếc mảng cũ đi.
+2. Ưu điểm (Thế mạnh tuyệt đối)
+Bởi vì cấu tạo bên trong của nó là một chiếc Mảng, nên nó thừa hưởng ưu điểm mạnh nhất của Mảng:
+
+Truy xuất / Đọc dữ liệu CỰC NHANH: Khi bạn gọi .get(500), máy tính không cần phải đếm từ 0 đến 500. Nó tính toán bằng công thức toán học và nhảy "bùp" một phát đến chính xác ô nhớ thứ 500 ngay lập tức (Thời gian thực thi O(1)).
+Thêm vào cuối danh sách nhanh: Miễn là mảng chưa bị đầy, việc nhét thêm một phần tử vào cuối hàng chỉ tốn cái chớp mắt.
+👉 Vì vậy, ArrayList rất tuyệt vời để làm những danh sách tĩnh: Đọc dữ liệu ra xem thì nhiều, nhưng ít khi chỉnh sửa.
+
+3. Nhược điểm (Điểm yếu chí mạng)
+Thêm / Xóa phần tử ở ĐẦU hoặc GIỮA cực chậm: Hãy tưởng tượng bạn có một mảng 1 triệu phần tử. Nếu bạn dùng lệnh .remove(0) để xóa thằng đầu tiên. Sẽ có 1 khoảng trống ở vị trí số 0. Để lấp đầy khoảng trống đó, ArrayList phải ép
+ 999.999 phần tử còn lại nhích lên phía trước 1 bước. Việc dịch chuyển hàng loạt này tốn rất nhiều thời gian và tài nguyên máy tính (Thời gian O(n)).
+Tương tự, nếu bạn chèn 1 người vào vị trí số 0, toàn bộ 1 triệu người phía sau sẽ phải lùi lại 1 bước để nhường chỗ.
+Tóm lại:
+
+Dùng ArrayList khi bạn muốn tạo danh sách để lưu trữ và lấy ra xem.
+Nếu bài toán của bạn yêu cầu xóa và thêm dữ liệu liên tục ở phần giữa hoặc phần đầu, ArrayList sẽ "khóc thét".
+ Đó là lúc ta phải dùng đến LinkedList!
