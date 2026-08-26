@@ -5,7 +5,9 @@ public class Main {
         // ArrayListExample.run();
         // LinkedListExample.run();
         // SetExample.run();
-        MapExample.run();
+        // MapExample.run();
 
+        // Chạy thử Generic
+        Collectioin_Java.GENERIC.GenericExample.run();
     }
 }

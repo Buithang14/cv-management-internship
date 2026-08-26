@@ -1,0 +1,46 @@
+# Generic trong Java
+
+## 1. Generic là gì?
+Generic trong Java cho phép bạn chỉ định kiểu dữ liệu cho một class, interface hoặc method. Điều này giúp phát hiện lỗi kiểu dữ liệu (Type Safety) ngay tại thời điểm biên dịch (compile-time) thay vì thời điểm chạy (run-time).
+
+## 2. Ưu điểm của Generic
+- **An toàn kiểu dữ liệu (Type Safety):** Trình biên dịch có thể kiểm tra xem bạn có lưu trữ hoặc lấy sai kiểu dữ liệu hay không.
+- **Loại bỏ ép kiểu (Type Casting):** Trước khi có Generic, bạn thường xuyên phải ép kiểu. Khi có Generic, bạn không cần phải làm vậy nữa.
+- **Code tái sử dụng (Reusability):** Bạn có thể viết một phương thức, lớp hoặc interface áp dụng được cho nhiều loại kiểu dữ liệu khác nhau.
+
+## 3. Các quy ước đặt tên tham số kiểu (Type Parameter Naming Conventions)
+Thông thường, các ký tự in hoa được dùng để đại diện cho tham số kiểu:
+- **T**: Type (Thường được sử dụng cho kiểu bất kỳ)
+- **E**: Element (Được sử dụng nhiều bởi Java Collections Framework, ví dụ `List<E>`)
+- **K**: Key (Thường dùng cho Map, ví dụ `Map<K, V>`)
+- **V**: Value (Thường dùng cho Map)
+- **N**: Number
+
+## 4. Cách sử dụng Generic
+### Lớp Generic (Generic Class)
+Một lớp Generic được định nghĩa với cú pháp có dấu `<T>` phía sau tên class.
+```java
+public class Box<T> {
+    private T t;
+    public void set(T t) { this.t = t; }
+    public T get() { return t; }
+}
+```
+
+### Phương thức Generic (Generic Method)
+Bạn cũng có thể tạo một phương thức có thể nhận bất kỳ kiểu dữ liệu nào làm đối số.
+```java
+public static <E> void printArray(E[] elements) {
+    for (E element : elements) {
+        System.out.println(element);
+    }
+}
+```
+
+## 5. Wildcard trong Generic (?)
+Dấu `?` được gọi là wildcard (kí tự đại diện), biểu diễn cho một kiểu chưa biết.
+- `?` (Unbounded Wildcard): Đại diện cho một kiểu bất kỳ. Ví dụ: `List<?>`
+- `? extends T` (Upper Bounded Wildcard): Chỉ chấp nhận các lớp con của `T`, bao gồm cả `T`. Ví dụ: `List<? extends Number>` chấp nhận `Integer`, `Double`,...
+- `? super T` (Lower Bounded Wildcard): Chỉ chấp nhận các lớp cha của `T`, bao gồm cả `T`. Ví dụ: `List<? super Integer>` chấp nhận `Integer`, `Number`, `Object`.
+
+**Lưu ý quan trọng:** Không thể sử dụng kiểu dữ liệu nguyên thủy (primitive type) cho Generic. (Ví dụ: Không dùng được `List<int>`, phải dùng `List<Integer>`)
