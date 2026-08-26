@@ -1,0 +1,33 @@
+# Optional trong Java (Tránh ác mộng NullPointerException)
+
+## 1. Nỗi ám ảnh NullPointerException (NPE) là gì?
+Trong Java, `null` mang ý nghĩa là "không có gì cả" hoặc "rỗng". 
+Nếu bạn cố gắng gọi một phương thức (hàm) hoặc truy cập một thuộc tính từ một biến đang có giá trị là `null`, chương trình của bạn sẽ lập tức bị "sập" (Crash) và ném ra lỗi kinh điển: `java.lang.NullPointerException`.
+
+Người sáng lập ra khái niệm `null` (Tony Hoare) từng gọi nó là "Sai lầm tỷ đô" (The Billion Dollar Mistake) vì lượng thời gian và tiền bạc đổ vào để fix cái lỗi này trong lịch sử ngành phần mềm là vô biên.
+
+## 2. Cách chống NPE truyền thống
+Trước Java 8, lập trình viên thường phải viết các câu lệnh `if` kiểm tra null ở khắp mọi nơi:
+```java
+if (tenKhachHang != null) {
+    System.out.println(tenKhachHang.toUpperCase());
+} else {
+    System.out.println("Khách hàng ẩn danh");
+}
+```
+Việc này làm code trở nên dài dòng và nếu lỡ quên một chữ `if`, app vẫn sẽ sập.
+
+## 3. Cứu tinh Optional (Từ Java 8)
+`Optional` giống như một cái **Hộp bảo vệ** (Container). Thay vì cầm trực tiếp một biến có nguy cơ nổ (null), bạn bỏ biến đó vào cái hộp `Optional`. 
+- Nếu hộp có đồ, bạn lấy ra dùng an toàn.
+- Nếu hộp rỗng, hộp sẽ báo cho bạn biết để xử lý mượt mà thay vì làm sập chương trình.
+
+### 3.1. Tạo một cái hộp Optional
+- `Optional.of(value)`: Bỏ dữ liệu vào hộp. Dùng khi bạn CHẮC CHẮN 100% dữ liệu đó không bao giờ null. Nếu lỡ nó null, nó ném lỗi ngay lập tức.
+- **`Optional.ofNullable(value)`**: Trùm cuối hay dùng nhất! Nó cực kỳ an toàn. Nếu dữ liệu có thật, nó bỏ vào hộp. Nếu dữ liệu là null, nó tự động tạo ra một cái hộp rỗng (Empty Box) mà không ném lỗi.
+- `Optional.empty()`: Tự tay tạo ra một cái hộp rỗng.
+
+### 3.2. Lấy đồ từ hộp ra một cách an toàn
+- `.isPresent()`: Hỏi xem hộp có đồ không? (Trả về true/false).
+- **`.orElse(giá_trị_mặc_định)`**: Tuyệt chiêu! Nếu hộp có đồ thì lấy đồ ra. Nếu hộp rỗng thì trả về `giá_trị_mặc_định`. Không bao giờ bị lỗi NPE!
+- `.ifPresent(hành_động)`: Nếu hộp có đồ thì làm `hành_động` (thường truyền Lambda vào đây), nếu hộp rỗng thì bỏ qua không làm gì cả.

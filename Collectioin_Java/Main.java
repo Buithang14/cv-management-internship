@@ -8,6 +8,12 @@ public class Main {
         // MapExample.run();
 
         // Chạy thử Generic
-        Collectioin_Java.GENERIC.GenericExample.run();
+        // Collectioin_Java.GENERIC.GenericExample.run();
+        
+        // Chạy thử Stream API và Lambda
+        // STREAM_LAMBDA.StreamLambdaExample.run();
+
+        // Chạy thử Optional
+        OPTIONAL_JAVA.OptionalExample.run();
     }
 }

@@ -1,5 +1,6 @@
 Lý thuyết LinkedHashSet
-Cơ chế hoạt động: Là sự kết hợp sức mạnh của 2 cấu trúc dữ liệu: Bảng băm (Hash Table) và Danh sách liên kết kép (Doubly-Linked List). Mỗi phần tử khi thêm vào không chỉ được băm ra để kiểm tra trùng lặp (giống HashSet), mà còn được móc nối bằng các "sợi dây" con trỏ để ghi nhớ ai vào trước, ai vào sau (giống LinkedList).
+Cơ chế hoạt động: Là sự kết hợp sức mạnh của 2 cấu trúc dữ liệu: Bảng băm (Hash Table) và Danh sách liên kết kép (Doubly-Linked List). Mỗi phần tử khi thêm vào không chỉ được băm ra để kiểm tra trùng lặp (giống HashSet), mà còn được móc
+ nối bằng các "sợi dây" con trỏ để ghi nhớ ai vào trước, ai vào sau (giống LinkedList).
 Ưu điểm:
 Giữ nguyên thứ tự chèn (Insertion Order): Bạn .add() theo thứ tự nào, lúc in ra hoặc duyệt qua nó sẽ trả về y hệt thứ tự đó.
 Vẫn đảm bảo tính chất cốt lõi của Set: Không chứa phần tử trùng lặp.

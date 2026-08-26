@@ -1,4 +1,4 @@
-package Collectioin_Java;
+package Collectioin_Java.SET;
 
 import java.util.Set;
 //import java.util.HashSet;

@@ -1,0 +1,18 @@
+ Lý thuyết Map (HashMap)
+ Khái niệm: Map lưu trữ dữ liệu theo cặp Key-Value (Chìa khóa - Giá trị). Cứ 1 Key sẽ dẫn tới 1 Value.
+Đặc điểm của Key (Chìa khóa):
+Phải là Duy nhất (không được trùng lặp).
+Có thể dùng làm công cụ tìm kiếm siêu tốc.
+Tập hợp các Key bản chất chính là một Set.
+Đặc điểm của Value (Giá trị):
+Có thể trùng lặp thoải mái (Hai người khác nhau có thể dùng chung một số điện thoại nhà).
+Ưu điểm: Tốc độ tìm kiếm dữ liệu là "vô địch thiên hạ" $O(1)$. Thay vì phải dùng vòng lặp for để tìm số điện thoại của "An", bạn 
+chỉ cần gọi danhBa.get("An") là xong.
+
+Tính năng "Cập nhật" tự động của lệnh .put(): Khi bạn .put("An", "0999..."), HashMap sẽ đi tìm xem đã có cái chìa khóa "An" nào chưa.
+
+Nếu chưa có, nó tạo một mục mới.
+Nếu đã có, nó thẳng tay GHI ĐÈ (Overwrite) số điện thoại cũ bằng số mới. 👉 Vì vậy, lệnh .put() đóng luôn 2 vai diễn: Vừa là Thêm mới (Insert), vừa là Cập nhật (Update)! Điều này vô cùng tiện lợi.
+2. Không có thứ tự: Nhìn vào kết quả in ra: {Cuong=..., An=..., Binh=...}. Rõ ràng là nó lại bị xáo trộn lung tung giống hệt HashSet. Đúng vậy, vì bên dưới nó vẫn dùng "Bảng băm" để lưu Key.
+
+(Gợi ý nhỏ: Bạn có đoán được làm thế nào để nó tự động sắp xếp theo thứ tự bảng chữ cái, hoặc giữ nguyên thứ tự lúc thêm vào không? Vâng, đó chính là TreeMap và LinkedHashMap - nguyên lý giống y hệt nhà Set!)

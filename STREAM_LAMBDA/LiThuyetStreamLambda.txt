@@ -1,0 +1,37 @@
+# Lambda Expression và Stream API trong Java (Từ Java 8)
+
+## 1. Lambda Expression (Biểu thức Lambda) là gì?
+Trước Java 8, khi bạn muốn truyền một đoạn code (hành động) vào một hàm, bạn phải tạo ra một lớp Ẩn danh (Anonymous Class) rất dài dòng và phức tạp.
+Lambda Expression ra đời để giải quyết việc đó. Nó giúp bạn viết các hàm ẩn danh một cách vô cùng ngắn gọn.
+
+**Cú pháp:**
+`(tham_số) -> { thân_hàm_thực_thi }`
+
+**Ví dụ:**
+- Hàm không có tham số: `() -> System.out.println("Hello");`
+- Hàm có 1 tham số: `(x) -> x * 2` hoặc ngắn hơn là `x -> x * 2`
+- Hàm có nhiều tham số: `(a, b) -> a + b`
+
+## 2. Stream API là gì?
+Stream API KHÔNG PHẢI là một cấu trúc dữ liệu để lưu trữ (như List, Set, Map). 
+Nó giống như một "băng chuyền nhà máy" giúp bạn xử lý dữ liệu từ Collection (List, Set...) một cách tự động, nhanh chóng và tinh gọn.
+
+**Đặc điểm của Stream:**
+- **Không làm thay đổi dữ liệu gốc:** Stream tạo ra một luồng dữ liệu mới để thao tác, List/Set ban đầu của bạn vẫn giữ nguyên.
+- **Phong cách khai báo (Declarative):** Bạn chỉ cần nói "TÔI MUỐN GÌ" (ví dụ: tôi muốn lọc số chẵn), chứ không cần chỉ ra "LÀM NHƯ THẾ NÀO" (không cần viết vòng lặp for, if-else thủ công).
+
+## 3. Các "Trạm xử lý" (Operations) trên băng chuyền Stream
+Stream chia làm 2 loại thao tác:
+
+### 3.1. Thao tác trung gian (Intermediate Operations)
+Đứng giữa băng chuyền, nhận vào dữ liệu, biến đổi nó và đẩy tiếp ra một Stream mới. Bạn có thể nối nhiều thao tác này lại với nhau (Chaining).
+- `filter(điều_kiện)`: Lọc ra các phần tử thỏa mãn điều kiện.
+- `map(hành_động)`: Biến đổi phần tử này thành phần tử khác (Ví dụ: biến chữ thường thành chữ hoa, biến số thành bình phương của nó).
+- `sorted()`: Sắp xếp các phần tử.
+- `limit(n)`: Chỉ lấy n phần tử đầu tiên.
+
+### 3.2. Thao tác kết thúc (Terminal Operations)
+Đứng ở cuối băng chuyền, đóng gói sản phẩm lại và kết thúc quá trình Stream. Sau thao tác này, Stream bị đóng và không dùng lại được nữa.
+- `forEach(hành_động)`: Duyệt qua từng phần tử và làm gì đó (thường dùng để in ra).
+- `collect(Collectors.toList())`: Gom các phần tử sau khi xử lý xong bỏ vào một List mới.
+- `count()`: Đếm số lượng phần tử.

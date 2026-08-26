@@ -1,4 +1,4 @@
-package Collectioin_Java;
+package Collectioin_Java.LIST;
 
 import java.util.List;
 import java.util.ArrayList;
