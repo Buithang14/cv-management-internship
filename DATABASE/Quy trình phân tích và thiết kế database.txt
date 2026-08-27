@@ -1,0 +1,70 @@
+QUY TRÌNH PHÂN TÍCH VÀ THIẾT KẾ DATABASE
+BƯỚC 1: Xác định "Danh từ" (Entities / Bảng)
+Từ đề bài, chúng ta rút ra được các "Danh từ" cốt lõi. Để tránh việc chia nhỏ quá nhiều bảng gây khó khăn khi code JPA, chúng ta sẽ gộp các "Chi tiết CV" vào chung một bảng.
+1.	Phòng ban (Department): "Nhân viên thuộc các phòng ban khác nhau".
+2.	Người dùng (User): "HR, Tech Lead, Trưởng phòng, Nhân viên".
+3.	CV (Curriculum Vitae): Đối tượng chính. Lưu ý: Sẽ lưu trữ cả thông tin chi tiết (kinh nghiệm, học vấn...) dưới dạng JSON trong bảng này để tối ưu.
+4.	Yêu cầu cập nhật (Update Request): "HR gửi yêu cầu hàng loạt", "Hủy yêu cầu".
+5.	Lịch sử phê duyệt (Approval Log): "Luồng Phê duyệt: Tech Lead duyệt -> HR duyệt".
+6.	Thông báo (Notification): "Gửi thông báo", "Nhắc nhở tự động".
+Kết luận: Chúng ta cần 6 bảng chính.
+
+BƯỚC 2: Xác định "Thuộc tính" (Columns) & Giải đáp thắc mắc
+Quy tắc: Với mỗi "Danh từ", liệt kê các đặc điểm cần lưu trữ.
+1. Bảng departments (Phòng ban)
+•	id, created_at, updated_at
+o	Giải đáp ???: Đây là quy chuẩn BaseEntity (Convention #12). id là khóa chính để định danh duy nhất. created_at/updated_at dùng để Audit (Kiểm toán): giúp tra cứu dòng dữ liệu này được tạo lúc mấy giờ, sửa lần cuối khi nào (cực kỳ quan trọng khi debug lỗi).
+•	code: Mã phòng ban (P.KTCN, BU1...).
+•	name: Tên đầy đủ.
+2. Bảng users (Người dùng)
+•	id, created_at, updated_at (BaseEntity).
+•	username, password: Để đăng nhập.
+•	full_name, email, phone: Thông tin cá nhân (Email dùng để gửi thông báo).
+•	department_id: Khóa ngoại liên kết với bảng departments.
+•	role: Enum (HR, TECH_LEAD, MANAGER, EMPLOYEE) để phân quyền.
+3. Bảng cvs (Hồ sơ CV) - Giải quyết yêu cầu "Draft Space"
+•	id, created_at, updated_at (BaseEntity).
+•	user_id: Khóa ngoại (CV này của ai).
+•	version: dùng để quản lý phiên bản của CV.
+•	status: Enum (DRAFT, PENDING_APPROVAL, APPROVED, REJECTED).
+•	summary, objective:
+o	ánh xạ trực tiếp vào danh sách liệt kê:
+	summary = "Giới thiệu ngắn gọn về bản thân và kinh nghiệm cốt lõi".
+	objective = "Định hướng công việc trong ngắn hạn và dài hạn (Mục tiêu nghề nghiệp)".
+•	experiences_json, educations_json, skills_json, projects_json, languages_json:
+o	Thay vì tạo 5 bảng riêng lẻ (cv_experiences, cv_educations...), chúng ta lưu trữ chúng dưới dạng JSON trong bảng cvs.
+4. Bảng cv_update_requests (Yêu cầu cập nhật)
+•	id, created_at, updated_at.
+•	requested_by: ID của HR tạo yêu cầu.
+•	target_user_id: ID của nhân viên nhận yêu cầu.
+•	deadline: Hạn chót (để Cronjob quét nhắc nhở).
+•	batch_name: Tên đợt ("Update CV Project A").
+•	status: Enum (PENDING, COMPLETED, CANCELED).
+5. Bảng cv_approval_logs (Lịch sử phê duyệt)
+•	id, created_at.
+•	cv_id: Bản CV nào đang được duyệt.
+•	approver_id: Ai duyệt (Tech Lead/HR).
+•	action: Enum (APPROVED, REJECTED).
+•	comment: Lý do từ chối.
+6. Bảng notifications (Thông báo)
+•	id, created_at.
+•	user_id: Gửi cho ai.
+•	title, message: Nội dung.
+•	is_read: Đã đọc chưa (Boolean).
+
+BƯỚC 3: Xác định "Động từ" (Quan hệ giữa các bảng)
+Quy tắc: Xác định cách các bảng liên kết (1-1, 1-N, N-N).
+1.	Department 1 - N User: 1 Phòng ban có NHIỀU nhân viên. (Khóa ngoại department_id ở bảng users).
+2.	User 1 - N CV: 1 Nhân viên có NHIỀU bản CV (do có Versioning và Draft). (Khóa ngoại user_id ở bảng cvs).
+3.	User 1 - N Update_Request (vai trò người tạo): 1 HR tạo NHIỀU yêu cầu.
+4.	User 1 - N Update_Request (vai trò người nhận): 1 Nhân viên nhận NHIỀU yêu cầu.
+5.	CV 1 - N Approval_Log: 1 Bản CV có NHIỀU lượt phê duyệt (Tech Lead duyệt, rồi đến HR duyệt).
+6.	User 1 - N Notification: 1 Người dùng có NHIỀU thông báo.
+(Lưu ý: Vì chúng ta đã gộp Chi tiết CV vào JSON ở bảng cvs, nên không còn quan hệ 1-N giữa CV và Kinh nghiệm/Học vấn nữa. Điều này giúp sơ đồ sạch hơn rất nhiều).
+
+BƯỚC 4: Chuẩn hóa và Tối ưu (Rà soát lại với yêu cầu)
+•	 Yêu cầu "Draft Space" (Không gian nháp): Bảng cvs cho phép 1 user có nhiều bản ghi (1-N). Khi nhân viên sửa, hệ thống INSERT bản mới status = DRAFT, version = 2. Bản cũ status = APPROVED vẫn yên vị. -> Đạt.
+•	Yêu cầu "Batch Request" (Gửi hàng loạt): Bảng cv_update_requests lưu nhiều dòng dữ liệu (mỗi dòng 1 target_user_id), cùng chung batch_name và deadline. -> Đạt.
+•	 Yêu cầu "Cronjob nhắc nhở: Query bảng cv_update_requests WHERE status = PENDING AND deadline sắp đến. -> Đạt.
+•	Yêu cầu Convention: Đã dùng Enum (Convention #2), đã có created_at/updated_at (Convention #12), không hard-code. -> Đạt.
+
