@@ -23,3 +23,8 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MariaDBDialect
+
+# JWT Configuration (đọc từ .env)
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}  # mặc định 24 giờ nếu không set
