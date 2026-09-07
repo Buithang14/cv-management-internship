@@ -32,14 +32,11 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             throw new AppException(HttpStatus.FORBIDDEN, "Tài khoản đã bị vô hiệu hóa");
         }
 
-        // Gán role thành GrantedAuthority → dùng prefix "ROLE_" theo convention Spring Security
+        // Gán role thành GrantedAuthority → dùng prefix "ROLE_" theo convention Spring
+        // Security
         // Ví dụ: UserRole.HR → authority = "ROLE_HR"
         var authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
 
-        return new org.springframework.security.core.userdetails.User(
-                user.getUsername(),
-                user.getPassword(),
-                List.of(authority)
-        );
+        return new CustomUserDetails(user, List.of(authority));
     }
 }
