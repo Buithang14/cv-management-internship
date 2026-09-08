@@ -1,8 +1,11 @@
 package com.thangbui.cv_management.config;
 
+import com.thangbui.cv_management.entity.Cv;
 import com.thangbui.cv_management.entity.Department;
 import com.thangbui.cv_management.entity.User;
+import com.thangbui.cv_management.enums.CvStatus;
 import com.thangbui.cv_management.enums.UserRole;
+import com.thangbui.cv_management.repositorys.CvRepository;
 import com.thangbui.cv_management.repositorys.DepartmentRepository;
 import com.thangbui.cv_management.repositorys.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +34,7 @@ public class DataInitializer implements CommandLineRunner {
 
     private final DepartmentRepository departmentRepository;
     private final UserRepository userRepository;
+    private final CvRepository cvRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -76,6 +80,9 @@ public class DataInitializer implements CommandLineRunner {
                 itDept
         );
 
+        // Bước 3: Khởi tạo CV mẫu ban đầu cho employee1 nếu chưa có
+        userRepository.findByUsername("employee1").ifPresent(this::createSampleCvIfNotFound);
+
         log.info(">>> [DataInitializer] Kiểm tra và khởi tạo dữ liệu mẫu hoàn tất!");
     }
 
@@ -117,6 +124,29 @@ public class DataInitializer implements CommandLineRunner {
 
             userRepository.save(user);
             log.info(">>> Đã tạo tài khoản mẫu: username='{}' | role='{}' | password='{}'", username, role, rawPassword);
+        }
+    }
+
+    /**
+     * Hàm phụ trợ: Tạo CV mẫu ban đầu cho user nếu chưa có CV đang hoạt động
+     */
+    private void createSampleCvIfNotFound(User user) {
+        if (cvRepository.findByUserIdAndIsActiveTrue(user.getId()).isEmpty()) {
+            Cv cv = new Cv();
+            cv.setUser(user);
+            cv.setVersion(1);
+            cv.setIsActive(true);
+            cv.setOverallStatus(CvStatus.UPDATED);
+            cv.setFullName(user.getFullName());
+            cv.setPhone("0987654321");
+            cv.setSummary("Lập trình viên Java Backend nhiệt huyết, đam mê tìm hiểu Spring Boot và Microservices.");
+            cv.setObjective("Trở thành Senior Backend Developer trong 2 năm tới.");
+            cv.setSkillsJson("[\"Java\", \"Spring Boot\", \"MySQL\", \"Docker\"]");
+            cv.setExperiencesJson("[{\"company\": \"ABC Tech\", \"role\": \"Java Intern\", \"duration\": \"6 months\"}]");
+            cv.setEducationsJson("[{\"school\": \"Đại học Công Nghệ\", \"degree\": \"Kỹ sư CNTT\", \"year\": \"2020-2024\"}]");
+
+            cvRepository.save(cv);
+            log.info(">>> Đã tạo CV mẫu ban đầu cho user: {}", user.getUsername());
         }
     }
 }
