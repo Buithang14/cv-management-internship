@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.thangbui.cv_management.dto.request.UpdateCvDraftRequest;
 import com.thangbui.cv_management.dto.response.CvDraftDTO;
 import com.thangbui.cv_management.entity.Cv;
 import com.thangbui.cv_management.entity.CvDraft;
@@ -52,6 +53,41 @@ public class CvDraftService {
         CvDraft savedDraft = cvDraftRepository.save(draft);
 
         return mapToDTO(savedDraft);
+
+    }
+
+    @Transactional
+    public CvDraftDTO updateDraft(Long userId, Long draftId, UpdateCvDraftRequest request) {
+        // 1. tìm bản nháp theo draftId
+        CvDraft draft = cvDraftRepository.findById(draftId)
+                .orElseThrow(
+                        () -> new AppException(HttpStatus.NOT_FOUND, "không tìm thấy bản nháp với ID: " + draftId));
+        // 2. kiểm tra bản nháp này có phải của user đang đăng nhập không ?
+        if (!draft.getUser().getId().equals(userId)) {
+            throw new AppException(HttpStatus.FORBIDDEN, "bạn không có quyền chỉnh sửa bản nháp này");
+        }
+        // 3. kiểm tra trạng thái: Chỉ cho phép sửa nếu đang ở trạng thái DRAFTING,
+        // REJECTED_BY_TECH hoặc REJECTED_BY_HR
+        if (draft.getStatus() != DraftStatus.DRAFTING
+                && draft.getStatus() != DraftStatus.REJECTED_BY_TECH
+                && draft.getStatus() != DraftStatus.REJECTED_BY_HR) {
+            throw new AppException(HttpStatus.BAD_REQUEST,
+                    "bản nháp dang trong quá trình duyệt hoặc đã đóng, không thể chỉnh sửa");
+        }
+
+        // 4.cập nhật các trường thông tin mới từ 'request' vào draft
+        draft.setFullName(request.getFullName());
+        draft.setAvatarUrl(request.getAvatarUrl());
+        draft.setPhone(request.getPhone());
+        draft.setSummary(request.getSummary());
+        draft.setObjective(request.getObjective());
+        draft.setExperiencesJson(request.getExperiencesJson());
+        draft.setEducationsJson(request.getEducationsJson());
+        draft.setSkillsJson(request.getSkillsJson());
+
+        // 5.lưu lại vào db và chuyển đổi sang dto trả về
+        CvDraft updateDraft = cvDraftRepository.save(draft);
+        return mapToDTO(updateDraft);
 
     }
 
