@@ -53,4 +53,21 @@ public class CvDraftController {
         return ResponseEntity.ok(cvDraftDTO);
     }
 
+    /**
+     * UC05: Nộp bản nháp để gửi duyệt (Chuyển sang PENDING_TECH hoặc PENDING_HR)
+     * Endpoint: POST /api/v1/cv-drafts/{id}/submit
+     */
+
+    @PostMapping("/{id}/submit")
+    public ResponseEntity<CvDraftDTO> submitDraft(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable("id") Long id) {
+        Long userId = userDetails.getId();
+
+        CvDraftDTO cvDraftDTO = cvDraftService.submitDraft(userId, id);
+
+        return ResponseEntity.ok(cvDraftDTO);
+
+    }
+
 }

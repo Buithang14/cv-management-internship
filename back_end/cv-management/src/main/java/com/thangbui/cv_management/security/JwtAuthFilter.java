@@ -5,7 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.lang.NonNull;
+
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -25,17 +25,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     /**
      * Filter này chạy MỘT LẦN cho mỗi HTTP request.
      * Quy trình:
-     *   1. Đọc header "Authorization: Bearer <token>"
-     *   2. Trích xuất username từ token
-     *   3. Load UserDetails từ DB
-     *   4. Kiểm tra token hợp lệ → set Authentication vào SecurityContext
+     * 1. Đọc header "Authorization: Bearer <token>"
+     * 2. Trích xuất username từ token
+     * 3. Load UserDetails từ DB
+     * 4. Kiểm tra token hợp lệ → set Authentication vào SecurityContext
      */
     @Override
     protected void doFilterInternal(
-            @NonNull HttpServletRequest request,
-            @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain
-    ) throws ServletException, IOException {
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
 
         final String authHeader = request.getHeader("Authorization");
 
@@ -57,12 +56,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
                 if (jwtService.isTokenValid(jwt, userDetails)) {
                     // Tạo Authentication object và set vào SecurityContext
-                    UsernamePasswordAuthenticationToken authToken =
-                            new UsernamePasswordAuthenticationToken(
-                                    userDetails,
-                                    null,               // credentials = null (đã xác thực qua JWT)
-                                    userDetails.getAuthorities()
-                            );
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null, // credentials = null (đã xác thực qua JWT)
+                            userDetails.getAuthorities());
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }

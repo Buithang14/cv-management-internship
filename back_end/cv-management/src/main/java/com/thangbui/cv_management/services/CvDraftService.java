@@ -23,6 +23,7 @@ public class CvDraftService {
     private final CvDraftRepository cvDraftRepository;
     private final CvRepository cvRepository;
 
+    // khởi tạo một cv
     @Transactional
     public CvDraftDTO initDraft(Long userId) {
 
@@ -56,6 +57,7 @@ public class CvDraftService {
 
     }
 
+    // cập nhật cv
     @Transactional
     public CvDraftDTO updateDraft(Long userId, Long draftId, UpdateCvDraftRequest request) {
         // 1. tìm bản nháp theo draftId
@@ -88,6 +90,36 @@ public class CvDraftService {
         // 5.lưu lại vào db và chuyển đổi sang dto trả về
         CvDraft updateDraft = cvDraftRepository.save(draft);
         return mapToDTO(updateDraft);
+
+    }
+
+    // gửi bản nháp để duyệt
+    @Transactional
+    public CvDraftDTO submitDraft(Long userId, Long draftId) {
+        // 1.tìm bản nháp theo draftId
+        CvDraft draft = cvDraftRepository.findById(draftId).orElseThrow(
+                () -> new AppException(HttpStatus.NOT_FOUND, "Không tìm thấy bản nháp với ID: " + draftId));
+        // 2.kiểm tra xem cv có đúng chủ nhân không ?
+        if (!draft.getUser().getId().equals(userId)) {
+            throw new AppException(HttpStatus.FORBIDDEN, "Bạn không có quyền nộp bản nháp này");
+        }
+        // 3.kiểm tra trạng thái: chỉ cho nộp nếu Drafting, reject by tech, reject by hr
+        if (draft.getStatus() != DraftStatus.DRAFTING
+                && draft.getStatus() != DraftStatus.REJECTED_BY_TECH
+                && draft.getStatus() != DraftStatus.REJECTED_BY_HR) {
+            throw new AppException(HttpStatus.BAD_REQUEST,
+                    "Bản nháp đang trong quá trình duyệt hoặc đã đóng, không thể nộp lại");
+        }
+        // 4. xử lý thông minh
+        if (draft.getStatus() == DraftStatus.REJECTED_BY_HR) {
+            draft.setStatus(DraftStatus.PENDING_HR);
+        } else {
+            draft.setStatus(DraftStatus.PENDING_TECH);
+
+        }
+        // 5. lưu xuống db và trả về DTO
+        CvDraft savedDraft = cvDraftRepository.save(draft);
+        return mapToDTO(savedDraft);
 
     }
 
