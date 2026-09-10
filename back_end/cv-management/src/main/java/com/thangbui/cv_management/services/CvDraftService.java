@@ -14,11 +14,15 @@ import com.thangbui.cv_management.entity.CvDraft;
 import com.thangbui.cv_management.entity.User;
 import com.thangbui.cv_management.enums.DraftStatus;
 import com.thangbui.cv_management.exception.AppException;
+import com.thangbui.cv_management.repositorys.CvApprovalLogRepository;
 import com.thangbui.cv_management.repositorys.CvDraftRepository;
 import com.thangbui.cv_management.repositorys.CvRepository;
 import com.thangbui.cv_management.repositorys.UserRepository;
 
 import lombok.RequiredArgsConstructor;
+
+import com.thangbui.cv_management.entity.CvApprovalLog;
+import com.thangbui.cv_management.enums.ApprovalAction;
 
 @Service
 @RequiredArgsConstructor // tiêm phụ thuộc không cần viết contructor
@@ -26,6 +30,7 @@ public class CvDraftService {
     private final CvDraftRepository cvDraftRepository;
     private final CvRepository cvRepository;
     private final UserRepository userRepository;
+    private final CvApprovalLogRepository cvApprovalLogRepository;
 
     // khởi tạo một cv
     @Transactional
@@ -171,6 +176,47 @@ public class CvDraftService {
         // 3. Lấy danh sách bản nháp có status = PENDING_TECH thuộc phòng ban đó
         List<CvDraft> draft = cvDraftRepository.findByStatusAndUserDepartmentId(DraftStatus.PENDING_TECH, departmentId);
         return draft.stream().map(this::mapToDTO).toList();
+    }
+    // UC9: tech_lead duyệt bản nháp
+
+    @Transactional
+    public CvDraftDTO approCvDrafByTechLead(Long techLeadUserId, Long draftId, String comment) {
+        // 1. tìm thông tin TechLead và bản nháp từ database
+        User techLead = userRepository.findById(techLeadUserId)
+                .orElseThrow(
+                        () -> new AppException(HttpStatus.NOT_FOUND, "Không tìm thấy thông tin tài khoản TechLead"));
+        // tìm bản nháp theo id
+        CvDraft draft = cvDraftRepository.findById(draftId).orElseThrow(
+                () -> new AppException(HttpStatus.NOT_FOUND, "không tìm thấy bản nháp với ID: " + draftId));
+        // 2. kiểm tra thẩm quyền phòng ban: tech-lead chỉ được duyệt Cv nhân viên thuộc
+        // phòng ban mình
+        Long techLeadDeptId = techLead.getDepartment().getId();
+        Long employeeDeptId = draft.getUser().getDepartment().getId();
+
+        if (!techLeadDeptId.equals(employeeDeptId)) {
+            throw new AppException(HttpStatus.FORBIDDEN,
+                    "Bạn chỉ có quyền duyệt CV của nhân viên trong phòng ban của mình");
+        }
+        // 3. Kiểm tra trạng thái: Bản nháp phải đang ở trạng thái PENDING_TECH (chờ
+        // Tech Lead duyệt)
+        if (draft.getStatus() != DraftStatus.PENDING_TECH) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "Bản nháp không ở trạng thái chờ Tech Lead duyệt");
+        }
+        // 4: Chuyển trạng thái bản nháp sang PENDING_HR và lưu lại vào DB
+
+        draft.setStatus(DraftStatus.PENDING_HR);
+        CvDraft savedDraft = cvDraftRepository.save(draft);
+        // 5: Tạo bản ghi lịch sử phê duyệt (CvApprovalLog) và lưu vào DB
+
+        CvApprovalLog log = new CvApprovalLog();
+        log.setDraft(draft);
+        log.setApprover(techLead);
+        log.setAction(ApprovalAction.APPROVED_BY_TECH);
+        log.setComment(comment);
+        cvApprovalLogRepository.save(log);
+        // 6. Trả về DTO
+        return mapToDTO(savedDraft);
+
     }
 
 }
