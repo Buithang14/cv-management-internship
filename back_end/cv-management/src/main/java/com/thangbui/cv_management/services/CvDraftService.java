@@ -1,5 +1,6 @@
 package com.thangbui.cv_management.services;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
@@ -10,10 +11,12 @@ import com.thangbui.cv_management.dto.request.UpdateCvDraftRequest;
 import com.thangbui.cv_management.dto.response.CvDraftDTO;
 import com.thangbui.cv_management.entity.Cv;
 import com.thangbui.cv_management.entity.CvDraft;
+import com.thangbui.cv_management.entity.User;
 import com.thangbui.cv_management.enums.DraftStatus;
 import com.thangbui.cv_management.exception.AppException;
 import com.thangbui.cv_management.repositorys.CvDraftRepository;
 import com.thangbui.cv_management.repositorys.CvRepository;
+import com.thangbui.cv_management.repositorys.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -22,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 public class CvDraftService {
     private final CvDraftRepository cvDraftRepository;
     private final CvRepository cvRepository;
+    private final UserRepository userRepository;
 
     // khởi tạo một cv
     @Transactional
@@ -147,6 +151,26 @@ public class CvDraftService {
         dto.setUpdatedAt(draft.getUpdatedAt());
 
         return dto;
+    }
+
+    // UC8: techlead xem các bản nháp chờ duyệt mà employee gửi
+    @Transactional(readOnly = true)
+    public List<CvDraftDTO> getPendingDraftsForTechLead(Long techLeadUserId) {
+        // 1.tìm thông tin Teach Lead
+        User techLead = userRepository.findById(techLeadUserId)
+                .orElseThrow(
+                        () -> new AppException(HttpStatus.NOT_FOUND, "Không tìm thấy thông tin tài khoản tech lead"));
+        // 2. Kiểm tra xem tài khoản xem tài khoản này đã được gán vào phòng nào chưa?
+        if (techLead.getDepartment() == null) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "Tài khoản tech lead chưa được gán vào phòng ban nào");
+
+        }
+
+        Long departmentId = techLead.getDepartment().getId();
+
+        // 3. Lấy danh sách bản nháp có status = PENDING_TECH thuộc phòng ban đó
+        List<CvDraft> draft = cvDraftRepository.findByStatusAndUserDepartmentId(DraftStatus.PENDING_TECH, departmentId);
+        return draft.stream().map(this::mapToDTO).toList();
     }
 
 }
