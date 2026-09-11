@@ -8,14 +8,17 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.thangbui.cv_management.dto.request.RejectDraftRequest;
 import com.thangbui.cv_management.dto.response.CvDraftDTO;
 import com.thangbui.cv_management.security.CustomUserDetails;
 import com.thangbui.cv_management.services.CvDraftService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -51,6 +54,24 @@ public class TechLeadCvController {
         Long techLeadId = userDetails.getId();
         // 2. Gọi cvDraftService.approveDraftByTechLead(techLeadId, id, comment)
         CvDraftDTO cvDraftDTO = cvDraftService.approCvDrafByTechLead(techLeadId, id, comment);
+        // 3. Trả về ResponseEntity.ok(...) chứa kết quả DTO
+        return ResponseEntity.ok(cvDraftDTO);
+    }
+
+    /**
+     * UC10: Tech Lead từ chối bản nháp Trạm 1 (chuyển sang REJECTED_BY_TECH và ghi
+     * log)
+     * Endpoint: POST /api/v1/tech-lead/drafts/{id}/reject
+     */
+    @PostMapping("/{id}/reject")
+    public ResponseEntity<CvDraftDTO> rejectDraft(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable("id") Long id,
+            @Valid @RequestBody RejectDraftRequest request) {
+        // 1. Lấy techLeadId từ userDetails
+        Long techLeadId = userDetails.getId();
+        // 2. Gọi cvDraftService.approveDraftByTechLead(techLeadId, id, comment)
+        CvDraftDTO cvDraftDTO = cvDraftService.rejectDraftByTechLead(techLeadId, id, request);
         // 3. Trả về ResponseEntity.ok(...) chứa kết quả DTO
         return ResponseEntity.ok(cvDraftDTO);
     }

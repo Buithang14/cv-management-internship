@@ -1,0 +1,117 @@
+================================================================================
+          KHUNG TƯ DUY 5 CÂU HỎI BẤT BIẾN KHI VIẾT BẤT KỲ API BACKEND NÀO
+                              (Dành cho Spring Boot)
+================================================================================
+
+* NGUYÊN TẮC VÀNG:
+  1. Chưa giải thích được 5 câu hỏi này bằng Tiếng Việt -> TUYỆT ĐỐI CHƯA GÕ CODE.
+  2. Hãy viết 5 dòng comment Tiếng Việt vào hàm Service trước, sau đó chỉ việc 
+     "dịch" từng dòng thành mã Java (Điền vào chỗ trống).
+  3. Tư duy nghiệp vụ là gốc - Cú pháp ngôn ngữ chỉ là công cụ (quên thì tra cứu).
+
+================================================================================
+                           BẢNG TỔNG QUAN 5 BƯỚC
+================================================================================
+
++---+-------------------------------+-------------------------------------------+
+| # | CÂU HỎI TƯ DUY (TIẾNG VIỆT)  | CÁCH HIỆN THỰC TRONG SPRING BOOT          |
++---+-------------------------------+-------------------------------------------+
+| 1 | AI LÀM?                       | Lấy ID từ Token JWT (@AuthenticationPrincipal)|
+|   | (Xác thực & Thẩm quyền)       | Tìm User trong DB qua userRepository     |
++---+-------------------------------+-------------------------------------------+
+| 2 | LÀM VỚI CÁI GÌ?               | Lấy ID từ URL (@PathVariable)             |
+|   | (Đối tượng bị tác động)       | Tìm Entity từ DB: findById().orElseThrow()|
++---+-------------------------------+-------------------------------------------+
+| 3 | CÓ ĐƯỢC PHÉP LÀM KHÔNG?       | Kiểm tra luật nghiệp vụ (Business Rules)  |
+|   | (Điều kiện & Trạng thái)      | Vi phạm -> ném AppException (400, 403...) |
++---+-------------------------------+-------------------------------------------+
+| 4 | THAY ĐỔI GÌ TRONG DATABASE?   | Cập nhật Entity: entity.set...()          |
+|   | (Lưu dữ liệu & Ghi vết)       | Ghi log: new AuditLog(...), repo.save()   |
++---+-------------------------------+-------------------------------------------+
+| 5 | TRẢ VỀ CÁI GÌ CHO CLIENT?     | Chuyển Entity sang DTO (mapToDTO)         |
+|   | (Dữ liệu hiển thị Frontend)   | return ResponseEntity.ok(dto)             |
++---+-------------------------------+-------------------------------------------+
+
+================================================================================
+                      CHI TIẾT TỪNG BƯỚC VÀ CODE MẪU
+================================================================================
+
+--------------------------------------------------------------------------------
+BƯỚC 1: AI LÀM? (Who is calling?)
+--------------------------------------------------------------------------------
+* Tư duy:
+  - Ai đang gửi request này? (Nhân viên, Tech Lead hay HR?)
+  - Thông tin người này lấy ở đâu? (Luôn lấy từ Token JWT, không tin tưởng ID client gửi lên body).
+* Code mẫu:
+  User currentUser = userRepository.findById(currentUserId)
+          .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
+
+--------------------------------------------------------------------------------
+BƯỚC 2: LÀM VỚI CÁI GÌ? (What is the target entity?)
+--------------------------------------------------------------------------------
+* Tư duy:
+  - Thao tác này tác động lên bản ghi nào trong Database? (Bản nháp CV id = 1, yêu cầu cập nhật id = 2...)
+  - Nó có tồn tại không? Nếu không có thì dừng ngay lập tức.
+* Code mẫu:
+  CvDraft draft = cvDraftRepository.findById(draftId)
+          .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Không tìm thấy bản nháp với ID: " + draftId));
+
+--------------------------------------------------------------------------------
+BƯỚC 3: CÓ ĐƯỢC PHÉP LÀM TRONG TRẠNG THÁI HIỆN TẠI KHÔNG? (Can they do it?)
+--------------------------------------------------------------------------------
+* Tư duy:
+  - Đây là TRÁI TIM của lập trình Backend (Business Logic / Validation).
+  - Kiểm tra thẩm quyền:
+    + Người này có quyền tác động lên đối tượng này không? (Ví dụ: Cùng phòng ban không? Có phải chính chủ không?)
+  - Kiểm tra máy trạng thái (State Machine):
+    + Đối tượng có đang ở đúng trạng thái cho phép thực hiện hành động không? (Ví dụ: Phải là PENDING_TECH mới được duyệt).
+* Code mẫu:
+  // Kiểm tra phòng ban
+  if (!currentUser.getDepartment().getId().equals(draft.getUser().getDepartment().getId())) {
+      throw new AppException(HttpStatus.FORBIDDEN, "Bạn không có quyền thao tác trên CV của phòng ban khác");
+  }
+  // Kiểm tra trạng thái
+  if (draft.getStatus() != DraftStatus.PENDING_TECH) {
+      throw new AppException(HttpStatus.BAD_REQUEST, "Bản nháp không ở trạng thái chờ Tech Lead duyệt");
+  }
+
+--------------------------------------------------------------------------------
+BƯỚC 4: THAY ĐỔI CÁI GÌ TRONG DATABASE? (What gets updated?)
+--------------------------------------------------------------------------------
+* Tư duy:
+  - Sau khi kiểm tra mọi thứ đều hợp lệ, Database cần ghi nhận điều gì?
+  - Hai việc chính:
+    1. Thay đổi dữ liệu của đối tượng chính (Đổi status, cập nhật lý do từ chối...).
+    2. Ghi lịch sử / vết kiểm toán (Audit Log) để sau này tra soát: Ai làm? Vào lúc nào? Làm hành động gì? Ghi chú gì?
+* Code mẫu:
+  // 1. Cập nhật bản nháp
+  draft.setStatus(DraftStatus.PENDING_HR);
+  CvDraft savedDraft = cvDraftRepository.save(draft);
+
+  // 2. Ghi log lịch sử phê duyệt
+  CvApprovalLog log = new CvApprovalLog();
+  log.setDraft(savedDraft);
+  log.setApprover(currentUser);
+  log.setAction(ApprovalAction.APPROVED_BY_TECH);
+  log.setComment(comment);
+  cvApprovalLogRepository.save(log);
+
+--------------------------------------------------------------------------------
+BƯỚC 5: TRẢ VỀ CÁI GÌ CHO CLIENT? (What does the client need?)
+--------------------------------------------------------------------------------
+* Tư duy:
+  - Sau khi server xử lý xong, màn hình của người dùng cần hiển thị cái gì tiếp theo?
+  - Quy tắc: KHÔNG BAO GIỜ trả về trực tiếp Entity (vì lý do bảo mật và tránh lỗi vòng lặp JSON).
+  - Luôn bọc qua DTO (Data Transfer Object) để chỉ gửi những gì client cần thấy.
+* Code mẫu:
+  return mapToDTO(savedDraft);
+
+================================================================================
+                               LỜI KHUYÊN TÂM LÝ
+================================================================================
+1. Đừng so sánh tốc độ của mình với người đã đi làm nhiều năm.
+2. 1 ngày tự tay gõ và hiểu sâu 2 API có đầy đủ bảo mật + phân quyền + audit log 
+   là bạn đang đi rất chắc chắn.
+3. Khi gặp use case mới: HÃY HÍT THỞ SÂU -> MỞ FILE NÀY RA -> TRẢ LỜI 5 CÂU HỎI 
+   BẰNG TIẾNG VIỆT TRƯỚC!
+================================================================================

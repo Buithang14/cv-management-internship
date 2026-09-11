@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.thangbui.cv_management.dto.request.RejectDraftRequest;
 import com.thangbui.cv_management.dto.request.UpdateCvDraftRequest;
 import com.thangbui.cv_management.dto.response.CvDraftDTO;
 import com.thangbui.cv_management.entity.Cv;
@@ -215,6 +216,45 @@ public class CvDraftService {
         log.setComment(comment);
         cvApprovalLogRepository.save(log);
         // 6. Trả về DTO
+        return mapToDTO(savedDraft);
+
+    }
+
+    // UC10: TechLead từ chối bản nháp(trạm 1)
+    @Transactional
+    public CvDraftDTO rejectDraftByTechLead(Long techLeadId, Long draftId, RejectDraftRequest request) {
+        // 1. tìm thông tin TechLead và bản nháp từ database
+        User techLead = userRepository.findById(techLeadId)
+                .orElseThrow(
+                        () -> new AppException(HttpStatus.NOT_FOUND, "Không tìm thấy thông tin tài khoản TechLead"));
+        CvDraft draft = cvDraftRepository.findById(draftId)
+                .orElseThrow(
+                        () -> new AppException(HttpStatus.NOT_FOUND, "không tìm thấy bản nháp với id: " + draftId));
+        // 2. kiểm tra thẩm quyền phòng ban: tech-lead chỉ được duyệt Cv nhân viên thuộc
+        // phòng ban mình
+        Long techLeadDeptId = techLead.getDepartment().getId();
+        Long employeeDeptId = draft.getUser().getDepartment().getId();
+
+        if (!techLeadDeptId.equals(employeeDeptId)) {
+            throw new AppException(HttpStatus.FORBIDDEN,
+                    "Bạn chỉ có quyền duyệt CV của nhân viên trong phòng ban của mình");
+        }
+        // 3. bản nháp có đang ở trạng thái pending_tech không ?
+        if (draft.getStatus() != DraftStatus.PENDING_TECH) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "bản nháp không ở trạng thái để tech_lead duyệt");
+        }
+        // 4.cập nhật bản nháp sang trạng thái reject_by_tech
+        draft.setStatus(DraftStatus.REJECTED_BY_TECH);
+        draft.setRejectionNote(request.getRejectionNote());
+        CvDraft savedDraft = cvDraftRepository.save(draft);
+        // 5. lưu lại log
+        CvApprovalLog log = new CvApprovalLog();
+        log.setDraft(savedDraft);
+        log.setApprover(techLead);
+        log.setAction(ApprovalAction.REJECTED_BY_TECH);
+        log.setComment(request.getRejectionNote());
+        cvApprovalLogRepository.save(log);
+
         return mapToDTO(savedDraft);
 
     }
