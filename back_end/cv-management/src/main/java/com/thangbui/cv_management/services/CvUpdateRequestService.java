@@ -75,4 +75,39 @@ public class CvUpdateRequestService {
             req.getStatus(),
             req.getCreatedAt());
    }
+
+   /**
+    * UC12: HR hủy yêu cầu cập nhật CV
+    */
+
+   @Transactional
+   public CvUpdateRequestDTO cancelUpdateRequest(Long hrUserId, Long requestId) {
+      // 1. Kiểm tra tài khoản HR
+      userRepository.findById(hrUserId)
+            .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Không tìm thấy thông tin HR"));
+      // 2. tìm phiếu yêu cầu theo mã requestId
+      CvUpdateRequest req = cvUpdateRequestRepository.findById(requestId).orElseThrow(
+            () -> new AppException(HttpStatus.NOT_FOUND, "Không tìm thấy phiếu yêu cầu có ID: " + requestId));
+
+      // 3. kiểm tra tờ phiếu - chỉ được hủy khi phiếu đang PENDING( đang chờ)
+      if (req.getStatus() != RequestStatus.PENDING) {
+         throw new AppException(HttpStatus.BAD_REQUEST, "yêu cầu không ở trạng thái chờ, không thể hủy");
+
+      }
+      // 4. thay đổi trạng thái sang CANCELED và lưu vào db
+      req.setStatus(RequestStatus.CANCELED);
+      CvUpdateRequest savedRequest = cvUpdateRequestRepository.save(req);
+
+      // phần này chưa hiểu lắm
+
+      // 4b. Xóa nợ cho cho nhân viên ( NOT_UPDATED ->> REQUESt_CANCELED)
+      cvRepository.findByUserIdAndIsActiveTrue(req.getTargetUser().getId()).ifPresent(cv -> {
+         cv.setOverallStatus(CvStatus.REQUEST_CANCELED);
+         cvRepository.save(cv);
+      });
+
+      return mapToDTO(savedRequest);
+
+   }
+
 }
