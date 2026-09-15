@@ -1,10 +1,14 @@
 package com.thangbui.cv_management.services;
 
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.thangbui.cv_management.dto.response.CvDTO;
 import com.thangbui.cv_management.entity.Cv;
+import com.thangbui.cv_management.enums.CvStatus;
 import com.thangbui.cv_management.exception.AppException;
 import com.thangbui.cv_management.repositorys.CvRepository;
 
@@ -25,6 +29,18 @@ public class CvService {
 
         // 2.chuyển đổi Entity sang DTO để trả về
         return mapToDTO(cv);
+    }
+
+    /**
+     * UC13: HR xem và lọc toàn bộ CV của công ty
+     */
+
+    @Transactional(readOnly = true)
+    public List<CvDTO> getAllActiveCvsForHr(Long departmentId, CvStatus status) {
+        // 1. gọi repository lấy danh sách CV đã lọc từ database
+        List<Cv> cvList = cvRepository.findActiveCvsWithFilter(departmentId, status);
+        // 2. chuyển đổi danh sách Entity sang DTO và trả về
+        return cvList.stream().map(this::mapToDTO).toList();
     }
 
     private CvDTO mapToDTO(Cv cv) {
