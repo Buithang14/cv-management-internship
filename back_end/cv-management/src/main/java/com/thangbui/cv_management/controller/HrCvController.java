@@ -18,9 +18,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.thangbui.cv_management.dto.request.CreateCvUpdateRequestRequest;
 import com.thangbui.cv_management.dto.response.CvDTO;
+import com.thangbui.cv_management.dto.response.CvDraftDTO;
 import com.thangbui.cv_management.dto.response.CvUpdateRequestDTO;
 import com.thangbui.cv_management.enums.CvStatus;
 import com.thangbui.cv_management.security.CustomUserDetails;
+import com.thangbui.cv_management.services.CvDraftService;
 import com.thangbui.cv_management.services.CvService;
 import com.thangbui.cv_management.services.CvUpdateRequestService;
 
@@ -34,6 +36,7 @@ import lombok.RequiredArgsConstructor;
 public class HrCvController {
     private final CvUpdateRequestService cvUpdateRequestService;
     private final CvService cvService;
+    private final CvDraftService cvDraftService;
 
     /**
      * UC11: HR tạo đợt phát lệnh yêu cầu nhân viên cập nhật CV
@@ -77,4 +80,26 @@ public class HrCvController {
 
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * UC14 & UC19: HR duyệt chót bản nháp CV và nâng version CV gốc
+     * Endpoint: POST /api/v1/hr/drafts/{id}/approve
+     */
+    @PostMapping("/drafts/{id}/approve")
+    public ResponseEntity<CvDraftDTO> approveDraft(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable("id") Long id,
+            @RequestParam(required = false) String comment
+
+    ) {
+
+        /// 1. lấy ID của HR từ token đăng nhập
+        Long hrUserId = userDetails.getId();
+        // 2. gọi service xử lý duyệt
+        CvDraftDTO response = cvDraftService.approveDraftByHr(hrUserId, id, comment);
+        // 3. trả về kết quả 200 ok kèm DTO
+        return ResponseEntity.ok(response);
+
+    }
+
 }

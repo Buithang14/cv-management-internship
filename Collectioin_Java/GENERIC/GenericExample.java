@@ -59,7 +59,7 @@ public class GenericExample {
         inDanhSachSo(listDouble); // Hoàn toàn hợp lệ vì Double là con của Number
 
         System.out.println("=== 3. TRƯỚC KHI CÓ GENERIC ===");
-        List listKhongGeneric = new ArrayList();
+        List listKhongGeneric = new ArrayList<>();
 
         listKhongGeneric.add("Hello");
         listKhongGeneric.add(123);

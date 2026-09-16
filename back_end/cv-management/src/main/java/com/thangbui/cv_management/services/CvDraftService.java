@@ -12,18 +12,22 @@ import com.thangbui.cv_management.dto.request.UpdateCvDraftRequest;
 import com.thangbui.cv_management.dto.response.CvDraftDTO;
 import com.thangbui.cv_management.entity.Cv;
 import com.thangbui.cv_management.entity.CvDraft;
+import com.thangbui.cv_management.entity.CvUpdateRequest;
 import com.thangbui.cv_management.entity.User;
 import com.thangbui.cv_management.enums.DraftStatus;
+import com.thangbui.cv_management.enums.RequestStatus;
 import com.thangbui.cv_management.exception.AppException;
 import com.thangbui.cv_management.repositorys.CvApprovalLogRepository;
 import com.thangbui.cv_management.repositorys.CvDraftRepository;
 import com.thangbui.cv_management.repositorys.CvRepository;
+import com.thangbui.cv_management.repositorys.CvUpdateRequestRepository;
 import com.thangbui.cv_management.repositorys.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 
 import com.thangbui.cv_management.entity.CvApprovalLog;
 import com.thangbui.cv_management.enums.ApprovalAction;
+import com.thangbui.cv_management.enums.CvStatus;
 
 @Service
 @RequiredArgsConstructor // tiêm phụ thuộc không cần viết contructor
@@ -32,6 +36,7 @@ public class CvDraftService {
     private final CvRepository cvRepository;
     private final UserRepository userRepository;
     private final CvApprovalLogRepository cvApprovalLogRepository;
+    private final CvUpdateRequestRepository cvUpdateRequestRepository;
 
     // khởi tạo một cv
     @Transactional
@@ -255,6 +260,80 @@ public class CvDraftService {
         log.setComment(request.getRejectionNote());
         cvApprovalLogRepository.save(log);
 
+        return mapToDTO(savedDraft);
+
+    }
+
+    /**
+     * UC14 & UC19: HR duyệt chót bản nháp CV và nâng version CV gốc
+     */
+    @Transactional
+    public CvDraftDTO approveDraftByHr(Long hrUserId, Long draftId, String comment) {
+        // 1. tìm thông tin hr
+        User hr = userRepository.findById(hrUserId)
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "không tìm thấy tài khoản HR"));
+        // 2. tìm thông tin bản nháp
+        CvDraft draft = cvDraftRepository.findById(draftId)
+                .orElseThrow(
+                        () -> new AppException(HttpStatus.NOT_FOUND, "không tìm thấy bản nháp với id: " + draftId));
+        // 3. bản nháp có được sử dụng không, đK: PENDING_HR
+        if (draft.getStatus() != DraftStatus.PENDING_HR) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "Bản nháp không ở trạng thái chờ HR duyệt");
+        }
+        // 4. những thay đổi trong database.
+        // 4.1. đổi trạng thái bản nháp thành APPROVED
+        draft.setStatus(DraftStatus.APPROVED);
+        draft.setRejectionNote(null);
+        CvDraft savedDraft = cvDraftRepository.save(draft);
+
+        // 4.2. ghi lại lịch sử duyệt
+        CvApprovalLog log = new CvApprovalLog();
+        log.setDraft(savedDraft);
+        log.setApprover(hr);
+        log.setAction(ApprovalAction.APPROVED_BY_HR);
+        log.setComment(comment);
+        cvApprovalLogRepository.save(log);
+
+        // 4.3 nâng version Cv gốc (UC19)
+        // tìm CV chính thức hiện tại đang hoạt động (isActive = true)
+
+        Optional<Cv> oldCvOpt = cvRepository.findByUserIdAndIsActiveTrue(draft.getUser().getId());
+        int newVersion = 1; // Mặc định bản mới là version 1
+        // (phòng khi nhân viên mới toanh chưa có CV nào)
+        // .isPresent(): Nhìn vào hộp xem "Có đồ bên trong không?"
+        // Trả về true nếu có đồ.
+        // Trả về false nếu hộp rỗng.
+        if (oldCvOpt.isPresent()) {
+            // 1.thò tay vào hộp lấy Cv cũ ra
+            Cv oldCv = oldCvOpt.get();
+            // 2.tắt trạng thái hoạt động ( cho vào kho lưu trữ)
+            oldCv.setIsActive(false);
+            // 3. lưu bản cũ vừa tắt vào DB
+            cvRepository.save(oldCv);
+            // 4. lấy version cũ cộng 1 gán cho bản mới
+            newVersion = oldCv.getVersion() + 1;
+        }
+        // 1. khởi tạo bản ghi Cv chính thức mới
+        Cv newCv = new Cv();
+        newCv.setUser(draft.getUser());
+        newCv.setVersion(newVersion);
+        newCv.setIsActive(true); // Bản mới này sẽ là bản đang hoạt động
+        newCv.setOverallStatus(CvStatus.UPDATED); // Đổi trạng thái sang UPDATED (màu xanh)
+
+        // 2. Copy nhanh các trường nội dung (fullName, phone, skillsJson...) bằng
+        // BeanUtils
+        org.springframework.beans.BeanUtils.copyProperties(draft, newCv, "id", "createdAt", "updatedAt", "user");
+        // 3. Lưu CV chính thức mới vào DB
+        cvRepository.save(newCv);
+
+        // 4.4. Nếu có yêu cầu cập nhật đi kèm, đổi trạng thái sang COMPLETED
+        if (draft.getRequest() != null) {
+            CvUpdateRequest request = draft.getRequest();
+            request.setStatus(RequestStatus.COMPLETED);
+            cvUpdateRequestRepository.save(request);
+        }
+
+        // BƯỚC 5: TRẢ VỀ DTO
         return mapToDTO(savedDraft);
 
     }
