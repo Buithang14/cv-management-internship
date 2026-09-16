@@ -2,6 +2,7 @@ package com.thangbui.cv_management.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -10,12 +11,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.thangbui.cv_management.dto.request.UpdateCvDraftRequest;
+import com.thangbui.cv_management.dto.response.CvApprovalLogDTO;
 import com.thangbui.cv_management.dto.response.CvDraftDTO;
 import com.thangbui.cv_management.security.CustomUserDetails;
 import com.thangbui.cv_management.services.CvDraftService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -68,6 +71,25 @@ public class CvDraftController {
 
         return ResponseEntity.ok(cvDraftDTO);
 
+    }
+
+    /**
+     * UC16: Xem lịch sử phê duyệt của một bản nháp CV (Audit Logs)
+     * Endpoint: GET /api/v1/cv-drafts/{id}/logs
+     */
+    @GetMapping("/{id}/logs")
+    public ResponseEntity<List<CvApprovalLogDTO>> getDraftApprovalLogs(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable("id") Long id) {
+
+        // 1. Lấy ID của người dùng từ token
+        Long currentUserId = userDetails.getId();
+
+        // 2. Gọi service lấy danh sách log
+        List<CvApprovalLogDTO> response = cvDraftService.getDraftApprovalLogs(currentUserId, id);
+
+        // 3. Trả về kết quả 200 OK
+        return ResponseEntity.ok(response);
     }
 
 }

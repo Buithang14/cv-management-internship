@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.thangbui.cv_management.dto.request.RejectDraftRequest;
 import com.thangbui.cv_management.dto.request.UpdateCvDraftRequest;
+import com.thangbui.cv_management.dto.response.CvApprovalLogDTO;
 import com.thangbui.cv_management.dto.response.CvDraftDTO;
 import com.thangbui.cv_management.entity.Cv;
 import com.thangbui.cv_management.entity.CvDraft;
@@ -16,6 +17,7 @@ import com.thangbui.cv_management.entity.CvUpdateRequest;
 import com.thangbui.cv_management.entity.User;
 import com.thangbui.cv_management.enums.DraftStatus;
 import com.thangbui.cv_management.enums.RequestStatus;
+import com.thangbui.cv_management.enums.UserRole;
 import com.thangbui.cv_management.exception.AppException;
 import com.thangbui.cv_management.repositorys.CvApprovalLogRepository;
 import com.thangbui.cv_management.repositorys.CvDraftRepository;
@@ -368,6 +370,43 @@ public class CvDraftService {
         log.setComment(request.getRejectionNote());
         cvApprovalLogRepository.save(log);
         return mapToDTO(savedDraft);
+    }
+
+    /**
+     * UC16: Xem lịch sử duyệt của một bản nháp CV (Audit Logs)
+     */
+    @Transactional(readOnly = true)
+    public List<CvApprovalLogDTO> getDraftApprovalLogs(Long currentUserId, Long draftId) {
+        // 1. Tìm thông tin người dùng đang gọi
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Không tìm thấy thông tin người dùng"));
+
+        // 2. Tìm bản nháp theo draftId
+        CvDraft draft = cvDraftRepository.findById(draftId)
+                .orElseThrow(
+                        () -> new AppException(HttpStatus.NOT_FOUND, "Không tìm thấy bản nháp với ID: " + draftId));
+
+        // 3. Kiểm tra quyền xem lịch sử duyệt
+        if (currentUser.getRole() == UserRole.EMPLOYEE) {
+            if (!draft.getUser().getId().equals(currentUserId)) {
+                throw new AppException(HttpStatus.FORBIDDEN, "Bạn không có quyền xem lịch sử duyệt của người khác");
+            }
+        } else if (currentUser.getRole() == UserRole.TECH_LEAD) {
+            Long techLeadDeptId = currentUser.getDepartment() != null ? currentUser.getDepartment().getId() : null;
+            Long employeeDeptId = draft.getUser().getDepartment() != null ? draft.getUser().getDepartment().getId()
+                    : null;
+
+            if (techLeadDeptId == null || !techLeadDeptId.equals(employeeDeptId)) {
+                throw new AppException(HttpStatus.FORBIDDEN,
+                        "Bạn chỉ có quyền xem lịch sử duyệt của nhân viên trong phòng ban mình");
+            }
+        }
+
+        // 4. Lấy danh sách log từ DB
+        List<CvApprovalLog> logs = cvApprovalLogRepository.findByDraftIdOrderByCreatedAtAsc(draftId);
+
+        // 5. Trả về DTO (viết kiểu lambda rõ ràng, dễ hiểu!)
+        return logs.stream().map(log -> new CvApprovalLogDTO(log)).toList();
     }
 
 }

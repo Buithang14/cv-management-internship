@@ -1,5 +1,6 @@
 package com.thangbui.cv_management.dto.response;
 
+import com.thangbui.cv_management.entity.CvApprovalLog;
 import com.thangbui.cv_management.enums.ApprovalAction;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,9 +10,11 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 /**
- * DTO trả về thông tin lịch sử một lần phê duyệt / từ chối Bản Nháp (UC16 - Xem lịch sử duyệt CV).
+ * DTO trả về thông tin lịch sử một lần phê duyệt / từ chối Bản Nháp (UC16 - Xem
+ * lịch sử duyệt CV).
  * - Được truy vấn từ bảng cv_approval_logs theo draft_id.
- * - Giúp Employee biết lý do bị từ chối và giúp HR kiểm tra toàn bộ luồng phê duyệt 2 trạm.
+ * - Giúp Employee biết lý do bị từ chối và giúp HR kiểm tra toàn bộ luồng phê
+ * duyệt 2 trạm.
  */
 @Getter
 @Setter
@@ -34,7 +37,8 @@ public class CvApprovalLogDTO {
     private String approverName;
 
     /**
-     * Hành động đã thực hiện: APPROVED_BY_TECH, APPROVED_BY_HR, REJECTED_BY_TECH, REJECTED_BY_HR
+     * Hành động đã thực hiện: APPROVED_BY_TECH, APPROVED_BY_HR, REJECTED_BY_TECH,
+     * REJECTED_BY_HR
      */
     private ApprovalAction action;
 
@@ -47,5 +51,17 @@ public class CvApprovalLogDTO {
      * Thời điểm thực hiện hành động duyệt/từ chối.
      */
     private LocalDateTime createdAt;
+
+    public CvApprovalLogDTO(CvApprovalLog log) {
+        this.id = log.getId();
+        this.draftId = log.getDraft() != null ? log.getDraft().getId() : null;
+        if (log.getApprover() != null) {
+            this.approverId = log.getApprover().getId();
+            this.approverName = log.getApprover().getFullName();
+        }
+        this.action = log.getAction();
+        this.comment = log.getComment();
+        this.createdAt = log.getCreatedAt();
+    }
 
 }
