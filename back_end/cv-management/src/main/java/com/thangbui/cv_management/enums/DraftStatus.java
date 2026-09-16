@@ -25,11 +25,11 @@ public enum DraftStatus {
     //
     // HR hủy yêu cầu (bất kỳ lúc nào) ──► CANCELED
 
-    DRAFTING, // Nhân viên đang soạn thảo, chưa gửi duyệt
-    PENDING_TECH, // Đã gửi, chờ Tech Lead duyệt (Trạm 1)
-    PENDING_HR, // Tech Lead đã duyệt, chờ HR duyệt chót (Trạm 2)
-    REJECTED_BY_TECH, // Tech Lead từ chối → nhân viên sửa lại → quay về PENDING_TECH
-    REJECTED_BY_HR, // HR từ chối → nhân viên sửa lại → Smart Routing thẳng lên PENDING_HR
-    CANCELED, // HR hủy yêu cầu cập nhật (Luồng 4b) — xóa mềm, nhân viên vẫn copy lại được
-    APPROVED
+    DRAFTING, // Nhân viên đang soạn thảo, chưa gửi duyệt 1.
+    PENDING_TECH, // Đã gửi, chờ Tech Lead duyệt (Trạm 1) 2.
+    PENDING_HR, // Tech Lead đã duyệt, chờ HR duyệt chót (Trạm 2) 3.
+    REJECTED_BY_TECH, // Tech Lead từ chối → nhân viên sửa lại → quay về PENDING_TECH 4.
+    REJECTED_BY_HR, // HR từ chối → nhân viên sửa lại → Smart Routing thẳng lên PENDING_HR 5.
+    CANCELED, // HR hủy yêu cầu cập nhật (Luồng 4b) — xóa mềm, nhân viên vẫn copy lại được 6.
+    APPROVED // 7.
 }

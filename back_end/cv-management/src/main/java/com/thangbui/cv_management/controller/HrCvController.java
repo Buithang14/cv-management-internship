@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.thangbui.cv_management.dto.request.CreateCvUpdateRequestRequest;
+import com.thangbui.cv_management.dto.request.RejectDraftRequest;
 import com.thangbui.cv_management.dto.response.CvDTO;
 import com.thangbui.cv_management.dto.response.CvDraftDTO;
 import com.thangbui.cv_management.dto.response.CvUpdateRequestDTO;
@@ -100,6 +101,23 @@ public class HrCvController {
         // 3. trả về kết quả 200 ok kèm DTO
         return ResponseEntity.ok(response);
 
+    }
+
+    /**
+     * UC15: HR từ chối bản nháp Trạm 2 kèm lý do (kích hoạt Smart Routing)
+     * Endpoint: POST /api/v1/hr/drafts/{id}/reject
+     */
+    @PostMapping("/drafts/{id}/reject")
+    public ResponseEntity<CvDraftDTO> rejectDraft(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable("id") Long id,
+            @Valid @RequestBody RejectDraftRequest request) {
+        // 1. Lấy ID của HR từ token
+        Long hrUserId = userDetails.getId();
+        // 2. Gọi service xử lý từ chối
+        CvDraftDTO response = cvDraftService.rejectDraftByHr(hrUserId, id, request);
+        // 3. Trả về 200 OK kèm DTO kết quả
+        return ResponseEntity.ok(response);
     }
 
 }

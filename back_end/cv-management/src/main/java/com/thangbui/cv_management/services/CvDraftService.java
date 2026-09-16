@@ -338,4 +338,36 @@ public class CvDraftService {
 
     }
 
+    /**
+     * UC15: HR từ chối bản nháp Trạm 2 kèm lý do (kích hoạt Smart Routing)
+     */
+    @Transactional // nhận đầu vào là id của hr, id của bản nháp, request mà client lên
+    public CvDraftDTO rejectDraftByHr(Long hrUserId, Long draftId, RejectDraftRequest request) {
+        // 1. tìm thông tin của hr
+        User hr = userRepository.findById(hrUserId)
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "không tìm thấy tài khoản"));
+        // 2. tìm thông tin bản nháp
+        CvDraft draft = cvDraftRepository.findById(draftId).orElseThrow(
+                () -> new AppException(HttpStatus.NOT_FOUND, "không tìm thấy bản nháp với id: " + draftId));
+        // 3. bản nháp phải chờ HR duyệt
+        if (draft.getStatus() != DraftStatus.PENDING_HR) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "bản nháp này không ở trạng thái chờ HR duyệt");
+        }
+
+        // 4. những thay đổi trong database
+        // 4.1 thay đổi status Rejected_by_hr và lưu lại lí do từ chối
+        draft.setStatus(DraftStatus.REJECTED_BY_HR);
+        draft.setRejectionNote(request.getRejectionNote());
+        CvDraft savedDraft = cvDraftRepository.save(draft);
+
+        // 4.2. Ghi lịch sử từ chối vào bảng cv_approval_logs
+        CvApprovalLog log = new CvApprovalLog();
+        log.setDraft(savedDraft);
+        log.setApprover(hr);
+        log.setAction(ApprovalAction.REJECTED_BY_HR);
+        log.setComment(request.getRejectionNote());
+        cvApprovalLogRepository.save(log);
+        return mapToDTO(savedDraft);
+    }
+
 }
