@@ -3,9 +3,11 @@ package com.thangbui.cv_management.dto.response;
 import com.thangbui.cv_management.enums.UserRole;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import com.thangbui.cv_management.entity.User;
 
 // DTO trả về thông tin User cho client
 // Lưu ý:
@@ -15,6 +17,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @AllArgsConstructor
+@NoArgsConstructor
 public class UserDTO {
 
     private Long id;
@@ -31,5 +34,21 @@ public class UserDTO {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    // Constructor tự động bóc tách từ User sang DTO
+    public UserDTO(User user) {
+        this.id = user.getId();
+        this.username = user.getUsername();
+        this.fullName = user.getFullName();
+        this.email = user.getEmail();
+        this.role = user.getRole();
+        this.isActive = user.getIsActive();
+        if (user.getDepartment() != null) {
+            this.departmentId = user.getDepartment().getId();
+            this.departmentName = user.getDepartment().getName();
+        }
+        this.createdAt = user.getCreatedAt();
+        this.updatedAt = user.getUpdatedAt();
+    }
 
 }

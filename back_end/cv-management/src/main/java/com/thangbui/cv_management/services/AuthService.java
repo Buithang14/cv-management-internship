@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -37,7 +38,7 @@ public class AuthService {
      */
     public LoginResponse login(LoginRequest request) {
         try {
-            // Bước 1: Xác thực credentials — throw BadCredentialsException nếu sai
+            // Bước 1: Xác thực credentials — throw BadCredentialsException hoặc DisabledException
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             request.getUsername(),
@@ -46,6 +47,8 @@ public class AuthService {
             );
         } catch (BadCredentialsException e) {
             throw new AppException(HttpStatus.UNAUTHORIZED, "Username hoặc password không đúng");
+        } catch (DisabledException e) {
+            throw new AppException(HttpStatus.FORBIDDEN, "Tài khoản của bạn đã bị khóa");
         }
 
         // Bước 2: Load user từ DB (đã xác thực thành công)
@@ -63,19 +66,8 @@ public class AuthService {
         // Bước 5: Tạo JWT token
         String token = jwtService.generateToken(extraClaims, userDetails);
 
-        // Bước 6: Build UserDTO từ entity (flatten department)
-        UserDTO userDTO = new UserDTO(
-                user.getId(),
-                user.getUsername(),
-                user.getFullName(),
-                user.getEmail(),
-                user.getRole(),
-                user.getIsActive(),
-                user.getDepartment() != null ? user.getDepartment().getId() : null,
-                user.getDepartment() != null ? user.getDepartment().getName() : null,
-                user.getCreatedAt(),
-                user.getUpdatedAt()
-        );
+        // Bước 6: Build UserDTO từ entity
+        UserDTO userDTO = new UserDTO(user);
 
         return new LoginResponse(token, userDTO);
     }
