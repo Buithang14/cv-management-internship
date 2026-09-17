@@ -34,6 +34,8 @@ public class UserDTO {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String createdBy;
+    private String updatedBy;
 
     // Constructor tự động bóc tách từ User sang DTO
     public UserDTO(User user) {
@@ -49,7 +51,10 @@ public class UserDTO {
         }
         this.createdAt = user.getCreatedAt();
         this.updatedAt = user.getUpdatedAt();
+        this.createdBy = user.getCreatedBy();
+        this.updatedBy = user.getUpdatedBy();
     }
+
 
     public String getRoleDescription() {
         return role != null ? role.getDescription() : null;

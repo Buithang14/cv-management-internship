@@ -2,7 +2,9 @@ package com.thangbui.cv_management.entity;
 
 import java.time.LocalDateTime;
 
+import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -18,11 +20,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @MappedSuperclass // Đánh dấu đây là class cha, không tạo bảng trong DB
-@EntityListeners(AuditingEntityListener.class) //
-// tự động lắng nghe và điền các thông tin kiểm toán (audit) vào cơ sở dữ
-// liệu mỗi
-// khi một bản ghi (Entity) được thêm mới (insert) hoặc cập nhật (update).
-
+@EntityListeners(AuditingEntityListener.class) // tự động lắng nghe và điền các thông tin kiểm toán (audit)
 public abstract class BaseEntity {
 
     @Id
@@ -39,4 +37,15 @@ public abstract class BaseEntity {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @CreatedBy
+    @Column(name = "created_by", updatable = false)
+    // tự động lưu username người tạo (ví dụ: "admin", "employee1", "SYSTEM")
+    private String createdBy;
+
+    @LastModifiedBy
+    @Column(name = "updated_by")
+    // tự động lưu username người sửa đổi gần nhất
+    private String updatedBy;
+
 }
+
