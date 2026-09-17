@@ -74,4 +74,9 @@ public class CvDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    public String getOverallStatusDescription() {
+        return overallStatus != null ? overallStatus.getDescription() : null;
+    }
+
 }
+

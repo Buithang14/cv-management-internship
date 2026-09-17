@@ -3,7 +3,6 @@ package com.thangbui.cv_management.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -16,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.thangbui.cv_management.dto.ApiResponse;
 import com.thangbui.cv_management.dto.request.CreateCvUpdateRequestRequest;
 import com.thangbui.cv_management.dto.request.RejectDraftRequest;
 import com.thangbui.cv_management.dto.response.CvDTO;
@@ -44,28 +44,26 @@ public class HrCvController {
      * Endpoint: POST /api/v1/hr/requests
      */
     @PostMapping("/requests")
-    public ResponseEntity<List<CvUpdateRequestDTO>> createUpdateRequests(
+    public ResponseEntity<ApiResponse<List<CvUpdateRequestDTO>>> createUpdateRequests(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody CreateCvUpdateRequestRequest request) {
-        // 1. lấy ID của HR từ token
         Long hrUserId = userDetails.getId();
-        // 2.gọi service để xử lí
         List<CvUpdateRequestDTO> response = cvUpdateRequestService.creatUpdateRequest(hrUserId, request);
-
-        // 3.trẩ về mã 201 Created kèm danh sách DTO
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Tạo đợt yêu cầu cập nhật CV thành công", response));
     }
 
+    /**
+     * UC12: HR hủy yêu cầu cập nhật CV
+     * Endpoint: PUT /api/v1/hr/requests/{id}/cancel
+     */
     @PutMapping("/requests/{id}/cancel")
-    public ResponseEntity<CvUpdateRequestDTO> cancelUpdateRequest(
+    public ResponseEntity<ApiResponse<CvUpdateRequestDTO>> cancelUpdateRequest(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable("id") Long id) {
-        // 1. lấy id của HR từ token
         Long hrUserID = userDetails.getId();
-        // 2. gọi service hủy yêu cầu
         CvUpdateRequestDTO response = cvUpdateRequestService.cancelUpdateRequest(hrUserID, id);
-        // 3.trả về kết quả 200OK
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success("Hủy yêu cầu cập nhật CV thành công", response));
     }
 
     /**
@@ -73,13 +71,11 @@ public class HrCvController {
      * Endpoint: GET /api/v1/hr/cvs
      */
     @GetMapping("/cvs")
-    public ResponseEntity<List<CvDTO>> getAllCvs(
+    public ResponseEntity<ApiResponse<List<CvDTO>>> getAllCvs(
             @RequestParam(required = false) Long departmentId,
             @RequestParam(required = false) CvStatus status) {
-        // 1. gọi service lấy danh sách Cv đã lọc
         List<CvDTO> response = cvService.getAllActiveCvsForHr(departmentId, status);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách CV thành công", response));
     }
 
     /**
@@ -87,20 +83,13 @@ public class HrCvController {
      * Endpoint: POST /api/v1/hr/drafts/{id}/approve
      */
     @PostMapping("/drafts/{id}/approve")
-    public ResponseEntity<CvDraftDTO> approveDraft(
+    public ResponseEntity<ApiResponse<CvDraftDTO>> approveDraft(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable("id") Long id,
-            @RequestParam(required = false) String comment
-
-    ) {
-
-        /// 1. lấy ID của HR từ token đăng nhập
+            @RequestParam(required = false) String comment) {
         Long hrUserId = userDetails.getId();
-        // 2. gọi service xử lý duyệt
         CvDraftDTO response = cvDraftService.approveDraftByHr(hrUserId, id, comment);
-        // 3. trả về kết quả 200 ok kèm DTO
-        return ResponseEntity.ok(response);
-
+        return ResponseEntity.ok(ApiResponse.success("Duyệt chót bản nháp và nâng version CV thành công", response));
     }
 
     /**
@@ -108,16 +97,13 @@ public class HrCvController {
      * Endpoint: POST /api/v1/hr/drafts/{id}/reject
      */
     @PostMapping("/drafts/{id}/reject")
-    public ResponseEntity<CvDraftDTO> rejectDraft(
+    public ResponseEntity<ApiResponse<CvDraftDTO>> rejectDraft(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable("id") Long id,
             @Valid @RequestBody RejectDraftRequest request) {
-        // 1. Lấy ID của HR từ token
         Long hrUserId = userDetails.getId();
-        // 2. Gọi service xử lý từ chối
         CvDraftDTO response = cvDraftService.rejectDraftByHr(hrUserId, id, request);
-        // 3. Trả về 200 OK kèm DTO kết quả
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success("Từ chối bản nháp thành công", response));
     }
 
 }

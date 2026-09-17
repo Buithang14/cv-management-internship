@@ -1,5 +1,6 @@
 package com.thangbui.cv_management.controller;
 
+import com.thangbui.cv_management.dto.ApiResponse;
 import com.thangbui.cv_management.dto.request.LoginRequest;
 import com.thangbui.cv_management.dto.response.LoginResponse;
 import com.thangbui.cv_management.services.AuthService;
@@ -21,11 +22,12 @@ public class AuthController {
     /**
      * POST /api/v1/auth/login
      * Body: { "username": "...", "password": "..." }
-     * Response: { "accessToken": "...", "user": { ... } }
+     * Response: { "success": true, "message": "Đăng nhập thành công", "data": { "accessToken": "...", "user": {...} } }
      */
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-        LoginResponse response = authService.login(request);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
+        LoginResponse loginResponse = authService.login(request);
+        return ResponseEntity.ok(ApiResponse.success("Đăng nhập thành công", loginResponse));
     }
 }
+

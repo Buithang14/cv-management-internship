@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.thangbui.cv_management.dto.ApiResponse;
 import com.thangbui.cv_management.dto.request.RejectDraftRequest;
 import com.thangbui.cv_management.dto.response.CvDraftDTO;
 import com.thangbui.cv_management.security.CustomUserDetails;
@@ -33,11 +34,10 @@ public class TechLeadCvController {
      * Endpoint: GET /api/v1/tech-lead/drafts/pending
      */
     @GetMapping("/pending")
-    public ResponseEntity<List<CvDraftDTO>> getPendingDrafts(@AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ResponseEntity<ApiResponse<List<CvDraftDTO>>> getPendingDrafts(@AuthenticationPrincipal CustomUserDetails userDetails) {
         Long techLeadId = userDetails.getId();
-
         List<CvDraftDTO> listcvDraftDTO = cvDraftService.getPendingDraftsForTechLead(techLeadId);
-        return ResponseEntity.ok(listcvDraftDTO);
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách bản nháp chờ duyệt thành công", listcvDraftDTO));
     }
 
     /**
@@ -45,35 +45,27 @@ public class TechLeadCvController {
      * Endpoint: POST /api/v1/tech-lead/drafts/{id}/approve
      */
     @PostMapping("/{id}/approve")
-    public ResponseEntity<CvDraftDTO> approveDraft(
+    public ResponseEntity<ApiResponse<CvDraftDTO>> approveDraft(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable("id") Long id,
             @RequestParam(required = false) String comment) {
-
-        // 1. Lấy techLeadId từ userDetails
         Long techLeadId = userDetails.getId();
-        // 2. Gọi cvDraftService.approveDraftByTechLead(techLeadId, id, comment)
         CvDraftDTO cvDraftDTO = cvDraftService.approCvDrafByTechLead(techLeadId, id, comment);
-        // 3. Trả về ResponseEntity.ok(...) chứa kết quả DTO
-        return ResponseEntity.ok(cvDraftDTO);
+        return ResponseEntity.ok(ApiResponse.success("Duyệt bản nháp thành công", cvDraftDTO));
     }
 
     /**
-     * UC10: Tech Lead từ chối bản nháp Trạm 1 (chuyển sang REJECTED_BY_TECH và ghi
-     * log)
+     * UC10: Tech Lead từ chối bản nháp Trạm 1 (chuyển sang REJECTED_BY_TECH và ghi log)
      * Endpoint: POST /api/v1/tech-lead/drafts/{id}/reject
      */
     @PostMapping("/{id}/reject")
-    public ResponseEntity<CvDraftDTO> rejectDraft(
+    public ResponseEntity<ApiResponse<CvDraftDTO>> rejectDraft(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable("id") Long id,
             @Valid @RequestBody RejectDraftRequest request) {
-        // 1. Lấy techLeadId từ userDetails
         Long techLeadId = userDetails.getId();
-        // 2. Gọi cvDraftService.approveDraftByTechLead(techLeadId, id, comment)
         CvDraftDTO cvDraftDTO = cvDraftService.rejectDraftByTechLead(techLeadId, id, request);
-        // 3. Trả về ResponseEntity.ok(...) chứa kết quả DTO
-        return ResponseEntity.ok(cvDraftDTO);
+        return ResponseEntity.ok(ApiResponse.success("Từ chối bản nháp thành công", cvDraftDTO));
     }
 
 }

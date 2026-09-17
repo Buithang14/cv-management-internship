@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.thangbui.cv_management.dto.ApiResponse;
 import com.thangbui.cv_management.dto.request.UpdateCvDraftRequest;
 import com.thangbui.cv_management.dto.response.CvApprovalLogDTO;
 import com.thangbui.cv_management.dto.response.CvDraftDTO;
@@ -31,13 +32,10 @@ public class CvDraftController {
      * Endpoint: POST /api/v1/cv-drafts/init
      */
     @PostMapping("/init")
-    public ResponseEntity<CvDraftDTO> initDraft(@AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ResponseEntity<ApiResponse<CvDraftDTO>> initDraft(@AuthenticationPrincipal CustomUserDetails userDetails) {
         Long userId = userDetails.getId();
-
         CvDraftDTO cvDraftDTO = cvDraftService.initDraft(userId);
-
-        return ResponseEntity.ok(cvDraftDTO);
-
+        return ResponseEntity.ok(ApiResponse.success("Khởi tạo bản nháp thành công", cvDraftDTO));
     }
 
     /**
@@ -45,32 +43,26 @@ public class CvDraftController {
      * Endpoint: PUT /api/v1/cv-drafts/{id}
      */
     @PutMapping("/{id}")
-    public ResponseEntity<CvDraftDTO> updateDraft(
+    public ResponseEntity<ApiResponse<CvDraftDTO>> updateDraft(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable("id") Long id,
             @Valid @RequestBody UpdateCvDraftRequest request) {
-        // 1. lấy userId từ userDetails
         Long userId = userDetails.getId();
-        // 2.
         CvDraftDTO cvDraftDTO = cvDraftService.updateDraft(userId, id, request);
-        return ResponseEntity.ok(cvDraftDTO);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật bản nháp thành công", cvDraftDTO));
     }
 
     /**
      * UC05: Nộp bản nháp để gửi duyệt (Chuyển sang PENDING_TECH hoặc PENDING_HR)
      * Endpoint: POST /api/v1/cv-drafts/{id}/submit
      */
-
     @PostMapping("/{id}/submit")
-    public ResponseEntity<CvDraftDTO> submitDraft(
+    public ResponseEntity<ApiResponse<CvDraftDTO>> submitDraft(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable("id") Long id) {
         Long userId = userDetails.getId();
-
         CvDraftDTO cvDraftDTO = cvDraftService.submitDraft(userId, id);
-
-        return ResponseEntity.ok(cvDraftDTO);
-
+        return ResponseEntity.ok(ApiResponse.success("Gửi duyệt thành công", cvDraftDTO));
     }
 
     /**
@@ -78,18 +70,12 @@ public class CvDraftController {
      * Endpoint: GET /api/v1/cv-drafts/{id}/logs
      */
     @GetMapping("/{id}/logs")
-    public ResponseEntity<List<CvApprovalLogDTO>> getDraftApprovalLogs(
+    public ResponseEntity<ApiResponse<List<CvApprovalLogDTO>>> getDraftApprovalLogs(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable("id") Long id) {
-
-        // 1. Lấy ID của người dùng từ token
         Long currentUserId = userDetails.getId();
-
-        // 2. Gọi service lấy danh sách log
-        List<CvApprovalLogDTO> response = cvDraftService.getDraftApprovalLogs(currentUserId, id);
-
-        // 3. Trả về kết quả 200 OK
-        return ResponseEntity.ok(response);
+        List<CvApprovalLogDTO> logs = cvDraftService.getDraftApprovalLogs(currentUserId, id);
+        return ResponseEntity.ok(ApiResponse.success("Lấy lịch sử phê duyệt thành công", logs));
     }
 
 }

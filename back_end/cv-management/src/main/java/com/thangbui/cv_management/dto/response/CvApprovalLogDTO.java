@@ -64,4 +64,9 @@ public class CvApprovalLogDTO {
         this.createdAt = log.getCreatedAt();
     }
 
+    public String getActionDescription() {
+        return action != null ? action.getDescription() : null;
+    }
+
 }
+

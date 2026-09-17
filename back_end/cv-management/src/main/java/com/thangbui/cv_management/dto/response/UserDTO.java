@@ -51,4 +51,9 @@ public class UserDTO {
         this.updatedAt = user.getUpdatedAt();
     }
 
+    public String getRoleDescription() {
+        return role != null ? role.getDescription() : null;
+    }
+
 }
+

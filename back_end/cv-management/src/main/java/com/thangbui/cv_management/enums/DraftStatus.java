@@ -1,5 +1,8 @@
 package com.thangbui.cv_management.enums;
 
+import lombok.Getter;
+
+@Getter
 public enum DraftStatus {
     // Vòng đời của một Bản Nháp (cv_drafts)
     // ────────────────────────────────────────────────────────────────────
@@ -25,11 +28,18 @@ public enum DraftStatus {
     //
     // HR hủy yêu cầu (bất kỳ lúc nào) ──► CANCELED
 
-    DRAFTING, // Nhân viên đang soạn thảo, chưa gửi duyệt 1.
-    PENDING_TECH, // Đã gửi, chờ Tech Lead duyệt (Trạm 1) 2.
-    PENDING_HR, // Tech Lead đã duyệt, chờ HR duyệt chót (Trạm 2) 3.
-    REJECTED_BY_TECH, // Tech Lead từ chối → nhân viên sửa lại → quay về PENDING_TECH 4.
-    REJECTED_BY_HR, // HR từ chối → nhân viên sửa lại → Smart Routing thẳng lên PENDING_HR 5.
-    CANCELED, // HR hủy yêu cầu cập nhật (Luồng 4b) — xóa mềm, nhân viên vẫn copy lại được 6.
-    APPROVED // 7.
+    DRAFTING("Đang soạn thảo"),          // Nhân viên đang soạn thảo, chưa gửi duyệt
+    PENDING_TECH("Chờ Tech Lead duyệt"), // Đã gửi, chờ Tech Lead duyệt (Trạm 1)
+    PENDING_HR("Chờ HR duyệt"),         // Tech Lead đã duyệt, chờ HR duyệt chót (Trạm 2)
+    REJECTED_BY_TECH("Tech Lead từ chối"), // Tech Lead từ chối
+    REJECTED_BY_HR("HR từ chối"),       // HR từ chối
+    CANCELED("Đã hủy yêu cầu"),         // HR hủy yêu cầu cập nhật
+    APPROVED("Đã duyệt hoàn tất");      // Đã duyệt hoàn tất
+
+    private final String description;
+
+    DraftStatus(String description) {
+        this.description = description;
+    }
 }
+

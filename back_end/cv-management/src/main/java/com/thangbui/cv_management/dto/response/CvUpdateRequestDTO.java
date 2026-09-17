@@ -29,4 +29,9 @@ public class CvUpdateRequestDTO {
 
     private LocalDateTime createdAt;
 
+    public String getStatusDescription() {
+        return status != null ? status.getDescription() : null;
+    }
+
 }
+

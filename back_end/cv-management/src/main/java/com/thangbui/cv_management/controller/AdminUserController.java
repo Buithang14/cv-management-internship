@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.thangbui.cv_management.dto.ApiResponse;
 import com.thangbui.cv_management.dto.response.UserDTO;
 import com.thangbui.cv_management.security.CustomUserDetails;
 import com.thangbui.cv_management.services.UserService;
@@ -28,7 +29,7 @@ public class AdminUserController {
      * Endpoint: PUT /api/v1/admin/users/{id}/status?isActive=true/false
      */
     @PutMapping("/{id}/status")
-    public ResponseEntity<UserDTO> updateUserStatus(
+    public ResponseEntity<ApiResponse<UserDTO>> updateUserStatus(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable("id") Long id,
             @RequestParam boolean isActive) {
@@ -40,7 +41,8 @@ public class AdminUserController {
         UserDTO response = userService.updateUserStatus(adminUserId, id, isActive);
 
         // 3. Trả về kết quả 200 OK
-        return ResponseEntity.ok(response);
+        String message = isActive ? "Mở khóa tài khoản thành công" : "Khóa tài khoản thành công";
+        return ResponseEntity.ok(ApiResponse.success(message, response));
     }
 
 }

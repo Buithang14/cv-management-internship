@@ -42,4 +42,9 @@ public class CvDraftDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    public String getStatusDescription() {
+        return status != null ? status.getDescription() : null;
+    }
+
 }
+

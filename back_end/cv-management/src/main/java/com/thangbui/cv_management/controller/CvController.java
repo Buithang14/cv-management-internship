@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.thangbui.cv_management.dto.ApiResponse;
 import com.thangbui.cv_management.dto.response.CvDTO;
 import com.thangbui.cv_management.security.CustomUserDetails;
 import com.thangbui.cv_management.services.CvService;
@@ -21,16 +22,13 @@ public class CvController {
     /**
      * UC02: Xem CV cá nhân đang hoạt động
      * Endpoint: GET /api/v1/cvs/me
+     * Response: { "success": true, "message": "...", "data": { CvDTO } }
      */
-
     @GetMapping("/me")
-    public ResponseEntity<CvDTO> getMyCv(@AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ResponseEntity<ApiResponse<CvDTO>> getMyCv(@AuthenticationPrincipal CustomUserDetails userDetails) {
         Long userId = userDetails.getId();
-
         CvDTO cvDTO = cvsService.getMyCv(userId);
-
-        return ResponseEntity.ok(cvDTO);
-
+        return ResponseEntity.ok(ApiResponse.success("Lấy CV thành công", cvDTO));
     }
 
 }
