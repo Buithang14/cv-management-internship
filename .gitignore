@@ -1,0 +1,13 @@
+# Environment Variables
+.env
+*.env
+
+# Build & Dependency Outputs
+**/node_modules/
+**/target/
+**/dist/
+
+# IDE & OS settings
+.vscode/
+.DS_Store
+Thumbs.db

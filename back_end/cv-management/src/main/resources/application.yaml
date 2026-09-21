@@ -3,18 +3,14 @@ spring:
     name: cv-management
   
   config:
-     import: optional:file:.env[.properties]
-     #optional: nếu không tìm thấy file .env thì không báo lỗi, app vẫn chạy
-     #file:.env đọc file .env ở thư mục gốc
-     #[.properties] đọc theo key-value
-     
+     import: optional:file:.env[.properties], optional:file:../.env[.properties], optional:file:../../.env[.properties]
+     # Đọc file .env ở thư mục hiện tại hoặc thư mục cha nếu chạy từ root IDE
 
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.mariadb.jdbc.Driver
-
 
   jpa:
     hibernate:
@@ -24,7 +20,9 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MariaDBDialect
 
-# JWT Configuration (đọc từ .env)
+# JWT Configuration (đọc bảo mật từ .env)
 jwt:
   secret: ${JWT_SECRET}
   expiration-ms: ${JWT_EXPIRATION_MS:86400000}  # mặc định 24 giờ nếu không set
+
+
