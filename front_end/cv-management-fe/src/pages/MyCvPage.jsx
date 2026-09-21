@@ -218,7 +218,7 @@ const MyCvPage = () => {
           <CvHeader
             fullName={cvData.fullName || user.username}
             avatarUrl={cvData.avatarUrl}
-            title={`Nhân viên CV Management System (v${cvData.version || 1})`}
+            title={user.departmentName || 'Phòng Công Nghệ Thông Tin'}
             summary={cvData.summary}
             objective={cvData.objective}
           />
