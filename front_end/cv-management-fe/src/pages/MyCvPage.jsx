@@ -14,6 +14,7 @@ import {
   Space,
   Empty,
   Divider,
+  Avatar,
 } from 'antd';
 import {
   EditOutlined,
@@ -22,10 +23,12 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   CloseCircleOutlined,
+  UploadOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
 import cvApi from '../api/cvApi';
 
-// Import các component con đã bóc tách & helper parse JSON
+// Import các sub-component
 import CvHeader from '../components/cv/CvHeader';
 import PersonalInfoSection from '../components/cv/PersonalInfoSection';
 import EducationSection from '../components/cv/EducationSection';
@@ -37,10 +40,7 @@ const { TextArea } = Input;
 
 /**
  * Component Trang CV Cá Nhân (MyCvPage)
- * Đã Refactor theo đúng yêu cầu:
- * - Parse JSON an toàn bằng parseJsonField
- * - Tách thành các Component chuyên biệt (CvHeader, EducationSection, ExperienceSection...)
- * - Bố cục 2 cột TopCV chuẩn Doanh Nghiệp (Không hiển thị chuỗi JSON thô)
+ * Hỗ trợ Tải ảnh Avatar từ máy tính (chuyển sang Base64 DataURL để lưu vào avatarUrl của Back-End)
  */
 const MyCvPage = () => {
   const [loading, setLoading] = useState(false);
@@ -50,6 +50,7 @@ const MyCvPage = () => {
   const [draftData, setDraftData] = useState(null);
   const [draftLoading, setDraftLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState('');
 
   const [form] = Form.useForm();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -78,8 +79,12 @@ const MyCvPage = () => {
       const draft = response.data || response.result || response;
       setDraftData(draft);
 
+      const initialAvatar = draft.avatarUrl || cvData?.avatarUrl || '';
+      setAvatarPreview(initialAvatar);
+
       form.setFieldsValue({
         fullName: draft.fullName || cvData?.fullName || '',
+        avatarUrl: initialAvatar,
         phone: draft.phone || cvData?.phone || '',
         objective: draft.objective || cvData?.objective || '',
         summary: draft.summary || cvData?.summary || '',
@@ -94,6 +99,26 @@ const MyCvPage = () => {
       message.error(error.response?.data?.message || 'Không thể khởi tạo bản nháp CV!');
     } finally {
       setDraftLoading(false);
+    }
+  };
+
+  // Xử lý khi chọn file ảnh từ máy tính
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        message.error('Kích thước ảnh không được vượt quá 2MB!');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => {
+        const base64Url = uploadEvent.target.result;
+        form.setFieldsValue({ avatarUrl: base64Url });
+        setAvatarPreview(base64Url);
+        message.success('Đã tải ảnh lên thành công!');
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -159,7 +184,7 @@ const MyCvPage = () => {
 
   return (
     <div style={{ maxWidth: 960, margin: '0 auto' }}>
-      {/* 1. THANH TIÊU ĐỀ THAO TÁC TRÊN CÙNG */}
+      {/* THANH TIÊU ĐỀ THAO TÁC */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
           <Title level={4} style={{ margin: 0 }}>HỒ SƠ CV CÁ NHÂN</Title>
@@ -179,7 +204,7 @@ const MyCvPage = () => {
         </Space>
       </div>
 
-      {/* 2. KHUNG CV DẠNG TỜ TÀI LIỆU TOPCV 2 CỘT */}
+      {/* KHUNG CV 2 CỘT */}
       {cvData ? (
         <Card 
           bordered={true} 
@@ -190,7 +215,6 @@ const MyCvPage = () => {
             padding: 12
           }}
         >
-          {/* HEADER: AVATAR + HỌ TÊN + TÓM TẮT MỤC TIÊU */}
           <CvHeader
             fullName={cvData.fullName || user.username}
             avatarUrl={cvData.avatarUrl}
@@ -201,15 +225,12 @@ const MyCvPage = () => {
 
           <Divider style={{ margin: '16px 0 24px 0' }} />
 
-          {/* CƠ THỂ CV CHIA LÀM 2 CỘT (LEFT MAIN COLUMN - RIGHT SIDE COLUMN) */}
           <Row gutter={32}>
-            {/* CỘT TRÁI CHÍNH (65% Width): HỌC VẤN & KINH NGHIỆM */}
             <Col span={15}>
               <EducationSection educationsJson={cvData.educationsJson} />
               <ExperienceSection experiencesJson={cvData.experiencesJson} />
             </Col>
 
-            {/* CỘT PHẢI PHỤ (35% Width): THÔNG TIN CẢ NHÂN, KỸ NĂNG, BỔ SUNG */}
             <Col span={9} style={{ borderLeft: '1px solid #f0f0f0', paddingLeft: 24 }}>
               <PersonalInfoSection
                 phone={cvData.phone}
@@ -244,7 +265,7 @@ const MyCvPage = () => {
         />
       )}
 
-      {/* 3. MODAL SOẠN THẢO BẢN NHÁP CV */}
+      {/* MODAL SOẠN THẢO BẢN NHÁP CV */}
       <Modal
         title="Soạn Thảo Bản Nháp CV"
         open={isModalOpen}
@@ -263,6 +284,45 @@ const MyCvPage = () => {
         ]}
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
+          {/* Ô CHỌN ẢNH ĐẠI DIỆN TỪ MÁY TÍNH */}
+          <Form.Item label="Ảnh Đại Diện Avatar" name="avatarUrl">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <Avatar
+                shape="square"
+                size={80}
+                src={avatarPreview}
+                icon={<UserOutlined />}
+                style={{ borderRadius: 6, border: '1px solid #d9d9d9', backgroundColor: '#fafafa', flexShrink: 0 }}
+              />
+              <div style={{ flexGrow: 1 }}>
+                <input
+                  type="file"
+                  accept="image/*"
+                  id="avatar-file-input"
+                  style={{ display: 'none' }}
+                  onChange={handleFileChange}
+                />
+                <Button
+                  icon={<UploadOutlined />}
+                  onClick={() => document.getElementById('avatar-file-input').click()}
+                >
+                  Chọn Ảnh Từ Máy Tính
+                </Button>
+                <div style={{ marginTop: 8 }}>
+                  <Input
+                    placeholder="Hoặc dán đường dẫn ảnh URL..."
+                    value={avatarPreview}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      form.setFieldsValue({ avatarUrl: val });
+                      setAvatarPreview(val);
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </Form.Item>
+
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item label="Họ và Tên" name="fullName" rules={[{ required: true, message: 'Vui lòng nhập họ tên!' }]}>
