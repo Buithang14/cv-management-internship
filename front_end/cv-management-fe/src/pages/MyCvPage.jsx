@@ -163,7 +163,7 @@ const MyCvPage = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
           <Title level={4} style={{ margin: 0 }}>HỒ SƠ CV CÁ NHÂN</Title>
-          <Text type="secondary">Giao diện CV doanh nghiệp 2 cột (Đã parse dữ liệu JSON thô)</Text>
+          <Text type="secondary">Phiên bản hiện tại: v{cvData?.version || 1}</Text>
         </div>
         
         <Space>
