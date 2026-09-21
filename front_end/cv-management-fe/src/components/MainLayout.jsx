@@ -16,7 +16,7 @@ const { Text } = Typography;
 
 /**
  * Component Khung Giao Diện Doanh Nghiệp (MainLayout)
- * Tuân thủ quy tắc nguyenTacDesign.txt: Tối giản, thanh lịch, phân quyền rõ ràng
+ * Tuân thủ quy tắc nguyenTacDesign.txt: Tối giản, thanh lịch, phân quyền rõ ràng theo UserRole (ADMIN, HR, TECH_LEAD, EMPLOYEE)
  */
 const MainLayout = () => {
   const navigate = useNavigate();
@@ -24,7 +24,7 @@ const MainLayout = () => {
 
   // Đọc thông tin User từ localStorage
   const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const userRole = user.role || 'USER';
+  const userRole = user.role || 'EMPLOYEE';
 
   // Xử lý Đăng xuất
   const handleLogout = () => {
@@ -43,18 +43,13 @@ const MainLayout = () => {
       },
     ];
 
-    // Menu dành cho USER / INTERN (Xem CV cá nhân & Yêu cầu cập nhật)
-    if (userRole === 'USER' || userRole === 'INTERN') {
+    // Menu dành cho EMPLOYEE / USER / INTERN (Xem CV cá nhân & Yêu cầu cập nhật)
+    if (userRole === 'EMPLOYEE' || userRole === 'USER' || userRole === 'INTERN') {
       items.push(
         {
           key: '/my-cv',
           icon: <FileTextOutlined />,
           label: 'CV Cá Nhân',
-        },
-        {
-          key: '/my-requests',
-          icon: <SolutionOutlined />,
-          label: 'Yêu Cầu Cập Nhật',
         }
       );
     }
@@ -112,8 +107,9 @@ const MainLayout = () => {
         return <Tag color="magenta">HR</Tag>;
       case 'TECH_LEAD':
         return <Tag color="purple">TECH LEAD</Tag>;
+      case 'EMPLOYEE':
       default:
-        return <Tag color="blue">USER</Tag>;
+        return <Tag color="blue">EMPLOYEE</Tag>;
     }
   };
 
