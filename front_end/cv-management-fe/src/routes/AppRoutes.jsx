@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from '../pages/LoginPage';
 import DashboardPage from '../pages/DashboardPage';
+import MyCvPage from '../pages/MyCvPage';
 import UnauthorizedPage from '../pages/UnauthorizedPage';
 import MainLayout from '../components/MainLayout';
 import ProtectedRoute from '../components/ProtectedRoute';
@@ -12,20 +13,17 @@ import ProtectedRoute from '../components/ProtectedRoute';
 const AppRoutes = () => {
   return (
     <Routes>
-      {/* 1. Public Route: Trang đăng nhập */}
+      {/* 1. Public Route */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-      {/* 2. Protected Routes: Tất cả trang cần Đăng nhập nằm bên trong MainLayout */}
+      {/* 2. Protected Routes trong MainLayout */}
       <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>
-          {/* Trang Dashboard chính (mọi Role đều truy cập được) */}
           <Route path="/dashboard" element={<DashboardPage />} />
           
-          {/* Ví dụ Protected Route theo Role trong các Phase tiếp theo: */}
-          {/* <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}> */}
-          {/*   <Route path="/admin/users" element={<AdminUserPage />} /> */}
-          {/* </Route> */}
+          {/* Route CV Cá Nhân dành cho USER / INTERN */}
+          <Route path="/my-cv" element={<MyCvPage />} />
         </Route>
       </Route>
 
