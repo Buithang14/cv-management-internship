@@ -4,24 +4,29 @@ import {
   Typography,
   Tag,
   Button,
-  Descriptions,
   Spin,
   Modal,
   Form,
   Input,
   message,
+  Avatar,
+  Row,
+  Col,
   Space,
   Empty,
   Divider,
 } from 'antd';
 import {
-  FileTextOutlined,
   EditOutlined,
   SendOutlined,
   SaveOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   CloseCircleOutlined,
+  UserOutlined,
+  PhoneOutlined,
+  MailOutlined,
+  EnvironmentOutlined,
 } from '@ant-design/icons';
 import cvApi from '../api/cvApi';
 
@@ -29,22 +34,21 @@ const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
 /**
- * Component Trang CV Cá Nhân dành cho User / Intern
- * Báo sát quy tắc nguyenTacDesign.txt: Tối giản, tập trung vào dữ liệu CV, hiển thị badge rõ ràng
+ * Component Trang CV Cá Nhân (MyCvPage)
+ * Thiết kế chuẩn Tờ Khai CV TopCV 2 cột theo đúng hình ảnh mẫu người dùng cung cấp
  */
 const MyCvPage = () => {
   const [loading, setLoading] = useState(false);
   const [cvData, setCvData] = useState(null);
   
-  // State quản lý Modal bản nháp
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [draftData, setDraftData] = useState(null);
   const [draftLoading, setDraftLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const [form] = Form.useForm();
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-  // 1. Tải thông tin CV chính thức hiện tại (GET /api/v1/cvs/me)
   const fetchMyCv = async () => {
     setLoading(true);
     try {
@@ -53,7 +57,6 @@ const MyCvPage = () => {
       setCvData(data);
     } catch (error) {
       console.error('Lỗi lấy thông tin CV:', error);
-      // Nếu chưa có CV -> cvData vẫn là null
     } finally {
       setLoading(false);
     }
@@ -63,7 +66,6 @@ const MyCvPage = () => {
     fetchMyCv();
   }, []);
 
-  // 2. Xử lý mở Modal Chỉnh sửa / Khởi tạo bản nháp (POST /api/v1/cv-drafts/init)
   const handleOpenDraftModal = async () => {
     setDraftLoading(true);
     try {
@@ -71,7 +73,6 @@ const MyCvPage = () => {
       const draft = response.data || response.result || response;
       setDraftData(draft);
 
-      // Điền sẵn dữ liệu bản nháp vào Form
       form.setFieldsValue({
         fullName: draft.fullName || cvData?.fullName || '',
         phone: draft.phone || cvData?.phone || '',
@@ -91,7 +92,6 @@ const MyCvPage = () => {
     }
   };
 
-  // 3. Xử lý Lưu Nháp (PUT /api/v1/cv-drafts/{id})
   const handleSaveDraft = async () => {
     try {
       const values = await form.validateFields();
@@ -110,19 +110,14 @@ const MyCvPage = () => {
     }
   };
 
-  // 4. Xử lý Nộp Bài Gửi Duyệt (POST /api/v1/cv-drafts/{id}/submit)
   const handleSubmitDraft = async () => {
     try {
-      // Lưu lại trước khi submit
       await handleSaveDraft();
-
       setSubmitting(true);
       await cvApi.submitDraft(draftData.id);
 
       message.success('Đã nộp bản nháp và gửi yêu cầu phê duyệt thành công!');
       setIsModalOpen(false);
-      
-      // Tải lại dữ liệu CV mới
       fetchMyCv();
     } catch (error) {
       console.error('Lỗi gửi duyệt:', error);
@@ -132,7 +127,6 @@ const MyCvPage = () => {
     }
   };
 
-  // Hàm trả về Tag Trạng thái CV chuẩn semantic
   const renderStatusTag = (status) => {
     switch (status) {
       case 'APPROVED':
@@ -153,73 +147,192 @@ const MyCvPage = () => {
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: 50 }}>
-        <Spin size="large" tip="Đang tải thông tin CV..." />
+        <Spin size="large" tip="Đang tải dữ liệu CV..." />
       </div>
     );
   }
 
   return (
-    <div>
-      {/* HEADER MÀN HÌNH */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+    <div style={{ maxWidth: 960, margin: '0 auto' }}>
+      {/* 1. THANH TIÊU ĐỀ THAO TÁC TRÊN CÙNG */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
-          <Title level={4} style={{ margin: 0 }}>CV CÁ NHÂN</Title>
-          <Text type="secondary">Xem thông tin CV hiện tại và khởi tạo bản nháp cập nhật</Text>
+          <Title level={4} style={{ margin: 0 }}>HỒ SƠ CV CÁ NHÂN</Title>
+          <Text type="secondary">Định dạng mẫu CV doanh nghiệp chuẩn 2 cột</Text>
         </div>
         
-        <Button
-          type="primary"
-          icon={<EditOutlined />}
-          onClick={handleOpenDraftModal}
-          loading={draftLoading}
-        >
-          Soạn Thảo / Sửa CV Nháp
-        </Button>
+        <Space>
+          {cvData && renderStatusTag(cvData.overallStatus)}
+          <Button
+            type="primary"
+            icon={<EditOutlined />}
+            onClick={handleOpenDraftModal}
+            loading={draftLoading}
+          >
+            Chỉnh Sửa / Tạo Bản Nháp
+          </Button>
+        </Space>
       </div>
 
-      {/* NỘI DUNG CV CHÍNH THỨC */}
+      {/* 2. KHUNG CV DẠNG TỜ TÀI LIỆU TOPCV 2 CỘT */}
       {cvData ? (
-        <Card bordered={true} style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-            <div>
-              <Title level={3} style={{ margin: 0 }}>{cvData.fullName || 'Chưa cập nhật họ tên'}</Title>
-              <Text type="secondary">Phiên bản CV: v{cvData.version || 1}</Text>
+        <Card 
+          bordered={true} 
+          style={{ 
+            boxShadow: '0 4px 12px rgba(0,0,0,0.08)', 
+            borderRadius: 8,
+            background: '#ffffff',
+            padding: 12
+          }}
+        >
+          {/* HEADER: AVATAR + HỌ TÊN + TÓM TẮT MỤC TIÊU */}
+          <div style={{ display: 'flex', gap: 24, marginBottom: 24, alignItems: 'flex-start' }}>
+            {/* Ảnh Đại Diện Avatar */}
+            <div style={{ flexShrink: 0 }}>
+              <Avatar 
+                shape="square" 
+                size={140} 
+                src={cvData.avatarUrl} 
+                icon={<UserOutlined />}
+                style={{ borderRadius: 6, border: '1px solid #d9d9d9', backgroundColor: '#fafafa' }}
+              />
             </div>
-            <div>{renderStatusTag(cvData.overallStatus)}</div>
+
+            {/* Thông tin Tiêu đề & Tóm tắt */}
+            <div style={{ flexGrow: 1 }}>
+              <Title level={2} style={{ margin: 0, color: '#1f1f1f', fontWeight: 700 }}>
+                {cvData.fullName || user.username || 'Chưa nhập họ tên'}
+              </Title>
+              <Text strong style={{ fontSize: 16, color: '#595959', display: 'block', marginBottom: 12 }}>
+                Nhân viên CV Management System (v{cvData.version || 1})
+              </Text>
+
+              {/* Box Mục tiêu & Tóm tắt */}
+              <div style={{ background: '#f5f5f5', padding: '12px 16px', borderRadius: 6, borderLeft: '4px solid #1677ff' }}>
+                <Text style={{ fontSize: 13, color: '#262626' }}>
+                  {cvData.objective || cvData.summary || 'Chưa cập nhật tóm tắt bản thân và mục tiêu nghề nghiệp.'}
+                </Text>
+              </div>
+            </div>
           </div>
 
-          <Divider />
+          <Divider style={{ margin: '16px 0 24px 0' }} />
 
-          <Descriptions column={2} bordered size="small">
-            <Descriptions.Item label="Số điện thoại">{cvData.phone || 'N/A'}</Descriptions.Item>
-            <Descriptions.Item label="Ngày cập nhật cuối">
-              {cvData.updatedAt ? new Date(cvData.updatedAt).toLocaleDateString('vi-VN') : 'N/A'}
-            </Descriptions.Item>
-          </Descriptions>
+          {/* CƠ THỂ CV CHIA LÀM 2 CỘT (LEFT MAIN COLUMN - RIGHT SIDE COLUMN) */}
+          <Row gutter={32}>
+            {/* CỘT TRÁI CHÍNH (65% Width): HỌC VẤN & KINH NGHIỆM */}
+            <Col span={15}>
+              {/* PHẦN HỌC VẤN */}
+              <div style={{ marginBottom: 28 }}>
+                <div style={{ 
+                  background: '#1f1f1f', 
+                  color: '#ffffff', 
+                  padding: '6px 12px', 
+                  fontWeight: 700, 
+                  fontSize: 14, 
+                  letterSpacing: 1, 
+                  marginBottom: 12,
+                  display: 'inline-block',
+                  minWidth: 160
+                }}>
+                  HỌC VẤN
+                </div>
+                <div style={{ paddingLeft: 4 }}>
+                  <Text style={{ whiteSpace: 'pre-line', fontSize: 14, color: '#262626' }}>
+                    {cvData.educationsJson || 'Chưa có thông tin học vấn.'}
+                  </Text>
+                </div>
+              </div>
 
-          <Divider orientation="left">Mục Tiêu Nghề Nghiệp</Divider>
-          <Paragraph>{cvData.objective || 'Chưa có thông tin mục tiêu nghề nghiệp.'}</Paragraph>
+              {/* PHẦN KINH NGHIỆM LÀM VIỆC */}
+              <div>
+                <div style={{ 
+                  borderBottom: '2px solid #1f1f1f', 
+                  paddingBottom: 4, 
+                  fontWeight: 700, 
+                  fontSize: 14, 
+                  letterSpacing: 1, 
+                  marginBottom: 12,
+                  color: '#1f1f1f'
+                }}>
+                  KINH NGHIỆM LÀM VIỆC
+                </div>
+                <div style={{ paddingLeft: 4 }}>
+                  <Paragraph style={{ whiteSpace: 'pre-line', fontSize: 14, color: '#262626', lineHeight: 1.6 }}>
+                    {cvData.experiencesJson || 'Chưa có thông tin kinh nghiệm làm việc.'}
+                  </Paragraph>
+                </div>
+              </div>
+            </Col>
 
-          <Divider orientation="left">Tóm Tắt Bản Thân</Divider>
-          <Paragraph>{cvData.summary || 'Chưa có tóm tắt bản thân.'}</Paragraph>
+            {/* CỘT PHẢI PHỤ (35% Width): THÔNG TIN CẢ NHÂN, KỸ NĂNG, CHỨNG CHỈ */}
+            <Col span={9} style={{ borderLeft: '1px solid #f0f0f0', paddingLeft: 24 }}>
+              {/* THÔNG TIN CẢ NHÂN */}
+              <div style={{ marginBottom: 28 }}>
+                <div style={{ 
+                  borderBottom: '2px solid #1f1f1f', 
+                  paddingBottom: 4, 
+                  fontWeight: 700, 
+                  fontSize: 14, 
+                  letterSpacing: 1, 
+                  marginBottom: 12,
+                  color: '#1f1f1f'
+                }}>
+                  THÔNG TIN CẢ NHÂN
+                </div>
+                <Space direction="vertical" size={8} style={{ width: '100%', fontSize: 13 }}>
+                  <div><PhoneOutlined style={{ marginRight: 8, color: '#595959' }} /> {cvData.phone || 'Chưa nhập SĐT'}</div>
+                  <div><MailOutlined style={{ marginRight: 8, color: '#595959' }} /> {user.email || 'email@company.com'}</div>
+                  <div><EnvironmentOutlined style={{ marginRight: 8, color: '#595959' }} /> Việt Nam</div>
+                </Space>
+              </div>
 
-          <Divider orientation="left">Kỹ Năng Kỹ Thuật (Skills)</Divider>
-          <Paragraph>{cvData.skillsJson || 'Chưa cập nhật kỹ năng.'}</Paragraph>
+              {/* KỸ NĂNG */}
+              <div style={{ marginBottom: 28 }}>
+                <div style={{ 
+                  borderBottom: '2px solid #1f1f1f', 
+                  paddingBottom: 4, 
+                  fontWeight: 700, 
+                  fontSize: 14, 
+                  letterSpacing: 1, 
+                  marginBottom: 12,
+                  color: '#1f1f1f'
+                }}>
+                  KỸ NĂNG
+                </div>
+                <Paragraph style={{ whiteSpace: 'pre-line', fontSize: 13, color: '#262626', lineHeight: 1.6 }}>
+                  {cvData.skillsJson || 'Chưa nhập kỹ năng.'}
+                </Paragraph>
+              </div>
 
-          <Divider orientation="left">Học Vấn (Education)</Divider>
-          <Paragraph>{cvData.educationsJson || 'Chưa cập nhật học vấn.'}</Paragraph>
-
-          <Divider orientation="left">Kinh Nghiệm Làm Việc (Experience)</Divider>
-          <Paragraph>{cvData.experiencesJson || 'Chưa cập nhật kinh nghiệm.'}</Paragraph>
+              {/* TỔNG QUAN HỒ SƠ */}
+              <div>
+                <div style={{ 
+                  borderBottom: '2px solid #1f1f1f', 
+                  paddingBottom: 4, 
+                  fontWeight: 700, 
+                  fontSize: 14, 
+                  letterSpacing: 1, 
+                  marginBottom: 12,
+                  color: '#1f1f1f'
+                }}>
+                  THÔNG TIN BỔ SUNG
+                </div>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  Ngày tạo CV: {cvData.createdAt ? new Date(cvData.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
+                </Text>
+              </div>
+            </Col>
+          </Row>
         </Card>
       ) : (
         <Empty
-          description="Bạn chưa có CV chính thức nào. Hãy bấm nút Soạn Thảo bên trên để tạo mới!"
-          style={{ padding: 40 }}
+          description="Bạn chưa có CV chính thức nào trong hệ thống. Bấm nút Soạn Thảo bên trên để tạo mới!"
+          style={{ padding: 60, background: '#fff', borderRadius: 8 }}
         />
       )}
 
-      {/* MODAL SOẠN THẢO BẢN NHÁP CV */}
+      {/* 3. MODAL SOẠN THẢO BẢN NHÁP CV */}
       <Modal
         title="Soạn Thảo Bản Nháp CV"
         open={isModalOpen}
@@ -238,32 +351,33 @@ const MyCvPage = () => {
         ]}
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item label="Họ và Tên" name="fullName" rules={[{ required: true, message: 'Vui lòng nhập họ tên!' }]}>
-            <Input placeholder="Nhập họ và tên đầy đủ" />
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="Họ và Tên" name="fullName" rules={[{ required: true, message: 'Vui lòng nhập họ tên!' }]}>
+                <Input placeholder="Nhập họ và tên đầy đủ" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="Số điện thoại" name="phone">
+                <Input placeholder="Nhập số điện thoại" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Form.Item label="Mục tiêu nghề nghiệp & Tóm tắt bản thân" name="objective">
+            <TextArea rows={3} placeholder="Mô tả mục tiêu nghề nghiệp, tóm tắt kinh nghiệm..." />
           </Form.Item>
 
-          <Form.Item label="Số điện thoại" name="phone">
-            <Input placeholder="Nhập số điện thoại" />
+          <Form.Item label="Học vấn (Đơn vị, Chuyên ngành, Niên khóa...)" name="educationsJson">
+            <TextArea rows={3} placeholder="Đại học TopCV - Chuyên ngành Kế toán (10/2016 - 10/2020)..." />
           </Form.Item>
 
-          <Form.Item label="Mục tiêu nghề nghiệp" name="objective">
-            <TextArea rows={3} placeholder="Mô tả mục tiêu nghề nghiệp của bạn..." />
-          </Form.Item>
-
-          <Form.Item label="Tóm tắt bản thân" name="summary">
-            <TextArea rows={3} placeholder="Tóm tắt ngắn gọn về điểm mạnh..." />
+          <Form.Item label="Kinh nghiệm làm việc (Tên công ty, Vị trí, Thời gian, Chi tiết công việc...)" name="experiencesJson">
+            <TextArea rows={5} placeholder="Công ty A TopCV - Nhân viên Kế toán (01/2022 - Hiện tại)..." />
           </Form.Item>
 
           <Form.Item label="Kỹ năng chuyên môn" name="skillsJson">
-            <TextArea rows={3} placeholder="Ví dụ: Java, Spring Boot, ReactJS, MariaDB..." />
-          </Form.Item>
-
-          <Form.Item label="Học vấn" name="educationsJson">
-            <TextArea rows={3} placeholder="Ví dụ: ĐH Bách Khoa - Ngành CNTT (2020-2024)..." />
-          </Form.Item>
-
-          <Form.Item label="Kinh nghiệm làm việc" name="experiencesJson">
-            <TextArea rows={3} placeholder="Ví dụ: Thực tập sinh Java tại Công ty A..." />
+            <TextArea rows={3} placeholder="Nắm vững nghiệp vụ kế toán, Am hiểu quy định pháp lý, Kỹ năng phân tích..." />
           </Form.Item>
         </Form>
       </Modal>
