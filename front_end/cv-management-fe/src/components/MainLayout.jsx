@@ -16,34 +16,25 @@ const { Text } = Typography;
 
 /**
  * Component Khung Giao Diện Doanh Nghiệp (MainLayout)
- * Tuân thủ quy tắc nguyenTacDesign.txt: Tối giản, thanh lịch, phân quyền rõ ràng theo UserRole (ADMIN, HR, TECH_LEAD, EMPLOYEE)
+ * Đã tối ưu UX: Với EMPLOYEE không cần trang Dashboard thừa thãi, dùng /my-cv làm trang chính
  */
 const MainLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Đọc thông tin User từ localStorage
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const userRole = user.role || 'EMPLOYEE';
 
-  // Xử lý Đăng xuất
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     navigate('/login');
   };
 
-  // Danh sách Menu điều hướng bên trái dựa vào Role của người dùng
   const getMenuItems = () => {
-    const items = [
-      {
-        key: '/dashboard',
-        icon: <DashboardOutlined />,
-        label: 'Dashboard',
-      },
-    ];
+    const items = [];
 
-    // Menu dành cho EMPLOYEE / USER / INTERN (Xem CV cá nhân & Yêu cầu cập nhật)
+    // 1. Nếu là EMPLOYEE / INTERN -> Trang chủ chính là CV Cá Nhân (Không dùng Dashboard thừa thãi)
     if (userRole === 'EMPLOYEE' || userRole === 'USER' || userRole === 'INTERN') {
       items.push(
         {
@@ -52,6 +43,13 @@ const MainLayout = () => {
           label: 'CV Cá Nhân',
         }
       );
+    } else {
+      // 2. Chỉ có HR, TECH LEAD, ADMIN mới cần Dashboard báo cáo tổng quan
+      items.push({
+        key: '/dashboard',
+        icon: <DashboardOutlined />,
+        label: 'Dashboard Tổng Quan',
+      });
     }
 
     // Menu dành cho HR (Duyệt CV & Quản lý danh sách CV)
@@ -98,7 +96,6 @@ const MainLayout = () => {
     return items;
   };
 
-  // Nhãn Badge đại diện cho từng Role
   const getRoleTag = (role) => {
     switch (role) {
       case 'ADMIN':
@@ -113,7 +110,6 @@ const MainLayout = () => {
     }
   };
 
-  // Menu Dropdown góc phải khi click vào User
   const userDropdownItems = [
     {
       key: 'username',
@@ -134,7 +130,6 @@ const MainLayout = () => {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      {/* 1. LEFT SIDEBAR */}
       <Sider width={240} theme="light" style={{ borderRight: '1px solid #f0f0f0' }}>
         <div style={{ padding: '16px 24px', textAlign: 'left', borderBottom: '1px solid #f0f0f0' }}>
           <Text strong style={{ fontSize: 16, color: '#1677ff', letterSpacing: 0.5 }}>
@@ -151,9 +146,7 @@ const MainLayout = () => {
         />
       </Sider>
 
-      {/* 2. KHUNG NỘI DUNG CHÍNH */}
       <Layout>
-        {/* TOP BAR */}
         <Header style={{ background: '#fff', padding: '0 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f0f0f0' }}>
           <div>
             <Text type="secondary">Hệ thống Quản lý & Phê duyệt CV Nội bộ</Text>
@@ -170,7 +163,6 @@ const MainLayout = () => {
           </div>
         </Header>
 
-        {/* MAIN CONTENT AREA */}
         <Content style={{ margin: 24, padding: 24, background: '#fff', borderRadius: 6, minHeight: 280 }}>
           <Outlet />
         </Content>

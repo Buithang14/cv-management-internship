@@ -6,48 +6,37 @@ import authApi from '../api/authApi';
 
 const { Title, Text } = Typography;
 
-/**
- * Component Trang Đăng Nhập (LoginPage)
- * Phong cách Enterprise: Tối giản, rõ ràng, không màu mè gradient.
- */
 const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  /**
-   * Hàm xử lý khi người dùng bấm "Đăng nhập"
-   * @param {Object} values - Đối tượng chứa { username, password }
-   */
   const onFinish = async (values) => {
     setLoading(true);
     try {
-      // 1. Gọi API login tới Spring Boot: POST /api/v1/auth/login
       const response = await authApi.login(values);
-      
-      // 2. Bóc tách dữ liệu chuẩn từ ApiResponse<LoginResponse> của Spring Boot:
-      // ApiResponse = { success: true, message: "...", data: { accessToken: "...", user: { id, username, role... } } }
       const resData = response.data || response.result || response;
       const token = resData.accessToken || resData.token;
-      
-      // Bóc tách object user nằm bên trong LoginResponse
       const backendUser = resData.user || resData;
 
       const user = {
         userId: backendUser.id || backendUser.userId,
         username: backendUser.username || values.username,
         fullName: backendUser.fullName || '',
-        role: backendUser.role || 'USER', // ADMIN, HR, TECH_LEAD, USER
+        role: backendUser.role || 'EMPLOYEE',
       };
 
-      // 3. Lưu Token và thông tin User chuẩn vào localStorage
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
 
-      // 4. Thông báo thành công
-      message.success(`Đăng nhập thành công! Chào mừng ${user.username} (${user.role})`);
+      message.success(`Đăng nhập thành công! Chào mừng ${user.username}`);
 
-      // 5. Chuyển hướng sang trang Dashboard
-      navigate('/dashboard');
+      // Tối ưu UX: Nếu là Nhân viên (EMPLOYEE) -> Chuyển thẳng tới trang CV Cá Nhân /my-cv
+      if (user.role === 'EMPLOYEE' || user.role === 'USER' || user.role === 'INTERN') {
+        navigate('/my-cv');
+      } else {
+        // HR, TECH_LEAD, ADMIN -> Vào Dashboard tổng quan
+        navigate('/dashboard');
+      }
     } catch (error) {
       console.error('Lỗi đăng nhập:', error);
       const errorMsg = error.response?.data?.message || 'Đăng nhập thất bại! Vui lòng kiểm tra tài khoản/mật khẩu.';
@@ -89,7 +78,7 @@ const LoginPage = () => {
           >
             <Input 
               prefix={<UserOutlined style={{ color: 'rgba(0,0,0,.25)' }} />} 
-              placeholder="Nhập tên tài khoản (admin, hr_admin, tech_lead, user1...)" 
+              placeholder="Nhập tên tài khoản" 
               size="large"
             />
           </Form.Item>

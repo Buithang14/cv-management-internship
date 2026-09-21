@@ -7,29 +7,27 @@ import UnauthorizedPage from '../pages/UnauthorizedPage';
 import MainLayout from '../components/MainLayout';
 import ProtectedRoute from '../components/ProtectedRoute';
 
-/**
- * Quản lý danh sách các Route và Phân quyền truy cập
- */
 const AppRoutes = () => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const userRole = user.role || 'EMPLOYEE';
+  const isEmployee = userRole === 'EMPLOYEE' || userRole === 'USER' || userRole === 'INTERN';
+
+  const defaultRedirect = isEmployee ? '/my-cv' : '/dashboard';
+
   return (
     <Routes>
-      {/* 1. Public Route */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-      {/* 2. Protected Routes trong MainLayout */}
       <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
-          
-          {/* Route CV Cá Nhân dành cho USER / INTERN */}
           <Route path="/my-cv" element={<MyCvPage />} />
         </Route>
       </Route>
 
-      {/* Default Redirect */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<Navigate to={defaultRedirect} replace />} />
+      <Route path="*" element={<Navigate to={defaultRedirect} replace />} />
     </Routes>
   );
 };
