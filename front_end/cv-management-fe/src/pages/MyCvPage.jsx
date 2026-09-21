@@ -9,7 +9,6 @@ import {
   Form,
   Input,
   message,
-  Avatar,
   Row,
   Col,
   Space,
@@ -23,19 +22,25 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   CloseCircleOutlined,
-  UserOutlined,
-  PhoneOutlined,
-  MailOutlined,
-  EnvironmentOutlined,
 } from '@ant-design/icons';
 import cvApi from '../api/cvApi';
 
-const { Title, Text, Paragraph } = Typography;
+// Import các component con đã bóc tách & helper parse JSON
+import CvHeader from '../components/cv/CvHeader';
+import PersonalInfoSection from '../components/cv/PersonalInfoSection';
+import EducationSection from '../components/cv/EducationSection';
+import ExperienceSection from '../components/cv/ExperienceSection';
+import SkillsSection from '../components/cv/SkillsSection';
+
+const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 /**
  * Component Trang CV Cá Nhân (MyCvPage)
- * Thiết kế chuẩn Tờ Khai CV TopCV 2 cột theo đúng hình ảnh mẫu người dùng cung cấp
+ * Đã Refactor theo đúng yêu cầu:
+ * - Parse JSON an toàn bằng parseJsonField
+ * - Tách thành các Component chuyên biệt (CvHeader, EducationSection, ExperienceSection...)
+ * - Bố cục 2 cột TopCV chuẩn Doanh Nghiệp (Không hiển thị chuỗi JSON thô)
  */
 const MyCvPage = () => {
   const [loading, setLoading] = useState(false);
@@ -158,7 +163,7 @@ const MyCvPage = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
           <Title level={4} style={{ margin: 0 }}>HỒ SƠ CV CÁ NHÂN</Title>
-          <Text type="secondary">Định dạng mẫu CV doanh nghiệp chuẩn 2 cột</Text>
+          <Text type="secondary">Giao diện CV doanh nghiệp 2 cột (Đã parse dữ liệu JSON thô)</Text>
         </div>
         
         <Space>
@@ -186,35 +191,13 @@ const MyCvPage = () => {
           }}
         >
           {/* HEADER: AVATAR + HỌ TÊN + TÓM TẮT MỤC TIÊU */}
-          <div style={{ display: 'flex', gap: 24, marginBottom: 24, alignItems: 'flex-start' }}>
-            {/* Ảnh Đại Diện Avatar */}
-            <div style={{ flexShrink: 0 }}>
-              <Avatar 
-                shape="square" 
-                size={140} 
-                src={cvData.avatarUrl} 
-                icon={<UserOutlined />}
-                style={{ borderRadius: 6, border: '1px solid #d9d9d9', backgroundColor: '#fafafa' }}
-              />
-            </div>
-
-            {/* Thông tin Tiêu đề & Tóm tắt */}
-            <div style={{ flexGrow: 1 }}>
-              <Title level={2} style={{ margin: 0, color: '#1f1f1f', fontWeight: 700 }}>
-                {cvData.fullName || user.username || 'Chưa nhập họ tên'}
-              </Title>
-              <Text strong style={{ fontSize: 16, color: '#595959', display: 'block', marginBottom: 12 }}>
-                Nhân viên CV Management System (v{cvData.version || 1})
-              </Text>
-
-              {/* Box Mục tiêu & Tóm tắt */}
-              <div style={{ background: '#f5f5f5', padding: '12px 16px', borderRadius: 6, borderLeft: '4px solid #1677ff' }}>
-                <Text style={{ fontSize: 13, color: '#262626' }}>
-                  {cvData.objective || cvData.summary || 'Chưa cập nhật tóm tắt bản thân và mục tiêu nghề nghiệp.'}
-                </Text>
-              </div>
-            </div>
-          </div>
+          <CvHeader
+            fullName={cvData.fullName || user.username}
+            avatarUrl={cvData.avatarUrl}
+            title={`Nhân viên CV Management System (v${cvData.version || 1})`}
+            summary={cvData.summary}
+            objective={cvData.objective}
+          />
 
           <Divider style={{ margin: '16px 0 24px 0' }} />
 
@@ -222,90 +205,19 @@ const MyCvPage = () => {
           <Row gutter={32}>
             {/* CỘT TRÁI CHÍNH (65% Width): HỌC VẤN & KINH NGHIỆM */}
             <Col span={15}>
-              {/* PHẦN HỌC VẤN */}
-              <div style={{ marginBottom: 28 }}>
-                <div style={{ 
-                  background: '#1f1f1f', 
-                  color: '#ffffff', 
-                  padding: '6px 12px', 
-                  fontWeight: 700, 
-                  fontSize: 14, 
-                  letterSpacing: 1, 
-                  marginBottom: 12,
-                  display: 'inline-block',
-                  minWidth: 160
-                }}>
-                  HỌC VẤN
-                </div>
-                <div style={{ paddingLeft: 4 }}>
-                  <Text style={{ whiteSpace: 'pre-line', fontSize: 14, color: '#262626' }}>
-                    {cvData.educationsJson || 'Chưa có thông tin học vấn.'}
-                  </Text>
-                </div>
-              </div>
-
-              {/* PHẦN KINH NGHIỆM LÀM VIỆC */}
-              <div>
-                <div style={{ 
-                  borderBottom: '2px solid #1f1f1f', 
-                  paddingBottom: 4, 
-                  fontWeight: 700, 
-                  fontSize: 14, 
-                  letterSpacing: 1, 
-                  marginBottom: 12,
-                  color: '#1f1f1f'
-                }}>
-                  KINH NGHIỆM LÀM VIỆC
-                </div>
-                <div style={{ paddingLeft: 4 }}>
-                  <Paragraph style={{ whiteSpace: 'pre-line', fontSize: 14, color: '#262626', lineHeight: 1.6 }}>
-                    {cvData.experiencesJson || 'Chưa có thông tin kinh nghiệm làm việc.'}
-                  </Paragraph>
-                </div>
-              </div>
+              <EducationSection educationsJson={cvData.educationsJson} />
+              <ExperienceSection experiencesJson={cvData.experiencesJson} />
             </Col>
 
-            {/* CỘT PHẢI PHỤ (35% Width): THÔNG TIN CẢ NHÂN, KỸ NĂNG, CHỨNG CHỈ */}
+            {/* CỘT PHẢI PHỤ (35% Width): THÔNG TIN CẢ NHÂN, KỸ NĂNG, BỔ SUNG */}
             <Col span={9} style={{ borderLeft: '1px solid #f0f0f0', paddingLeft: 24 }}>
-              {/* THÔNG TIN CẢ NHÂN */}
-              <div style={{ marginBottom: 28 }}>
-                <div style={{ 
-                  borderBottom: '2px solid #1f1f1f', 
-                  paddingBottom: 4, 
-                  fontWeight: 700, 
-                  fontSize: 14, 
-                  letterSpacing: 1, 
-                  marginBottom: 12,
-                  color: '#1f1f1f'
-                }}>
-                  THÔNG TIN CẢ NHÂN
-                </div>
-                <Space direction="vertical" size={8} style={{ width: '100%', fontSize: 13 }}>
-                  <div><PhoneOutlined style={{ marginRight: 8, color: '#595959' }} /> {cvData.phone || 'Chưa nhập SĐT'}</div>
-                  <div><MailOutlined style={{ marginRight: 8, color: '#595959' }} /> {user.email || 'email@company.com'}</div>
-                  <div><EnvironmentOutlined style={{ marginRight: 8, color: '#595959' }} /> Việt Nam</div>
-                </Space>
-              </div>
-
-              {/* KỸ NĂNG */}
-              <div style={{ marginBottom: 28 }}>
-                <div style={{ 
-                  borderBottom: '2px solid #1f1f1f', 
-                  paddingBottom: 4, 
-                  fontWeight: 700, 
-                  fontSize: 14, 
-                  letterSpacing: 1, 
-                  marginBottom: 12,
-                  color: '#1f1f1f'
-                }}>
-                  KỸ NĂNG
-                </div>
-                <Paragraph style={{ whiteSpace: 'pre-line', fontSize: 13, color: '#262626', lineHeight: 1.6 }}>
-                  {cvData.skillsJson || 'Chưa nhập kỹ năng.'}
-                </Paragraph>
-              </div>
-
-              {/* TỔNG QUAN HỒ SƠ */}
+              <PersonalInfoSection
+                phone={cvData.phone}
+                email={user.email}
+                address="Việt Nam"
+              />
+              <SkillsSection skillsJson={cvData.skillsJson} />
+              
               <div>
                 <div style={{ 
                   borderBottom: '2px solid #1f1f1f', 
@@ -368,16 +280,16 @@ const MyCvPage = () => {
             <TextArea rows={3} placeholder="Mô tả mục tiêu nghề nghiệp, tóm tắt kinh nghiệm..." />
           </Form.Item>
 
-          <Form.Item label="Học vấn (Đơn vị, Chuyên ngành, Niên khóa...)" name="educationsJson">
-            <TextArea rows={3} placeholder="Đại học TopCV - Chuyên ngành Kế toán (10/2016 - 10/2020)..." />
+          <Form.Item label="Học vấn (JSON hoặc Chuỗi text)" name="educationsJson">
+            <TextArea rows={3} placeholder='Ví dụ JSON: [{"school":"ĐH Công Nghệ","degree":"Kỹ sư CNTT","year":"2020-2024"}]' />
           </Form.Item>
 
-          <Form.Item label="Kinh nghiệm làm việc (Tên công ty, Vị trí, Thời gian, Chi tiết công việc...)" name="experiencesJson">
-            <TextArea rows={5} placeholder="Công ty A TopCV - Nhân viên Kế toán (01/2022 - Hiện tại)..." />
+          <Form.Item label="Kinh nghiệm làm việc (JSON hoặc Chuỗi text)" name="experiencesJson">
+            <TextArea rows={5} placeholder='Ví dụ JSON: [{"company":"Tech Corp","role":"Senior Dev","duration":"2 years","description":"• Phát triển API\n• Tối ưu DB"}]' />
           </Form.Item>
 
-          <Form.Item label="Kỹ năng chuyên môn" name="skillsJson">
-            <TextArea rows={3} placeholder="Nắm vững nghiệp vụ kế toán, Am hiểu quy định pháp lý, Kỹ năng phân tích..." />
+          <Form.Item label="Kỹ năng chuyên môn (JSON hoặc Chuỗi text)" name="skillsJson">
+            <TextArea rows={3} placeholder='Ví dụ JSON: ["Java", "Spring Boot", "Docker", "Kubernetes", "AWS"]' />
           </Form.Item>
         </Form>
       </Modal>
