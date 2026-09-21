@@ -12,13 +12,16 @@ Giống như mô hình **Controller -> Service -> Repository -> Database** ở B
 [Giao diện User (View)]
        │
        ▼
+[MainLayout.jsx] (Khung App Shell: Sidebar + Topbar + User Profile)
+       │
+       ▼
 [Pages / Components] (LoginPage.jsx, DashboardPage.jsx)
        │ (Gọi hàm API)
        ▼
 [API Services] (authApi.js, cvApi.js)
        │ (Truyền Request)
        ▼
-[HTTP Client] (axiosClient.js - Chứa Interceptors đính kèm JWT)
+[HTTP Client] (axiosClient.js - Interceptor đính kèm JWT Token)
        │ (HTTP REST Request: POST/GET/PUT/DELETE)
        ▼
 [Back-End Spring Boot Controller] (http://localhost:8080/api/v1/...)
@@ -35,14 +38,14 @@ Giống như mô hình **Controller -> Service -> Repository -> Database** ở B
   - `axiosClient.js`: Cấu hình BaseURL (`http://localhost:8080/api/v1`), tự động đính kèm Token vào Header `Authorization: Bearer <token>` và tự động bắt lỗi HTTP status `401 Unauthorized`.
   - `authApi.js`: Tập hợp các hàm gọi API liên quan tới xác thực (Đăng nhập `POST /auth/login`).
 
-### 2. `src/pages/` (Tầng Màn hình Giao diện)
-- **Chức năng:** Nơi chứa giao diện hoàn chỉnh của từng trang.
-- **File chính:**
-  - `LoginPage.jsx`: Màn hình Đăng nhập (Dùng Ant Design Form, bắt sự kiện click nút Đăng nhập -> gọi `authApi.login()` -> lưu Token -> chuyển trang).
-  - `DashboardPage.jsx`: Màn hình Tổng quan sau khi đăng nhập thành công.
+### 2. `src/components/` (Tầng Layout & Component Khung)
+- **MainLayout.jsx**: Khung ứng dụng doanh nghiệp chuẩn Enterprise (Sidebar bên trái hiển thị Menu tự đổi theo Role, Topbar ở trên hiển thị Avatar & Badge Role người dùng).
+- **ProtectedRoute.jsx**: Bộ lọc phân quyền bảo vệ đường dẫn (Tương đương `@PreAuthorize` ở Spring Security).
 
-### 3. `src/routes/` (Tầng Định tuyến & Phân quyền)
-- **Tương đương ở BE:** `SecurityConfig` + URL Mapping trong Controller.
-- **Chức năng:** Quản lý xem đường dẫn nào (`/login`, `/dashboard`) mở trang nào.
-- **File chính:**
-  - `AppRoutes.jsx`: Khai báo danh sách đường dẫn ứng dụng.
+### 3. `src/pages/` (Tầng Màn hình Giao diện)
+- **LoginPage.jsx**: Màn hình Đăng nhập.
+- **DashboardPage.jsx**: Màn hình Tổng quan sau khi đăng nhập.
+- **UnauthorizedPage.jsx**: Trang báo lỗi 403 Forbidden khi người dùng truy cập trái phép.
+
+### 4. `src/routes/` (Tầng Định tuyến & Phân quyền)
+- **AppRoutes.jsx**: Khai báo danh sách đường dẫn ứng dụng (`/login`, `/dashboard`, `/unauthorized`).
