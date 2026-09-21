@@ -79,6 +79,16 @@ public class HrCvController {
     }
 
     /**
+     * HR lấy danh sách bản nháp CV chờ duyệt Trạm 2 (PENDING_HR)
+     * Endpoint: GET /api/v1/hr/drafts/pending
+     */
+    @GetMapping("/drafts/pending")
+    public ResponseEntity<ApiResponse<List<CvDraftDTO>>> getPendingDrafts() {
+        List<CvDraftDTO> response = cvDraftService.getPendingDraftsForHr();
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách bản nháp chờ HR duyệt thành công", response));
+    }
+
+    /**
      * UC14 & UC19: HR duyệt chót bản nháp CV và nâng version CV gốc
      * Endpoint: POST /api/v1/hr/drafts/{id}/approve
      */

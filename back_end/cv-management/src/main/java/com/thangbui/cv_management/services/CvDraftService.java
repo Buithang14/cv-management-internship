@@ -185,6 +185,14 @@ public class CvDraftService {
         List<CvDraft> draft = cvDraftRepository.findByStatusAndUserDepartmentId(DraftStatus.PENDING_TECH, departmentId);
         return draft.stream().map(this::mapToDTO).toList();
     }
+
+    // HR xem các bản nháp chờ duyệt Trạm 2 (PENDING_HR)
+    @Transactional(readOnly = true)
+    public List<CvDraftDTO> getPendingDraftsForHr() {
+        List<CvDraft> drafts = cvDraftRepository.findByStatus(DraftStatus.PENDING_HR);
+        return drafts.stream().map(this::mapToDTO).toList();
+    }
+
     // UC9: tech_lead duyệt bản nháp
 
     @Transactional

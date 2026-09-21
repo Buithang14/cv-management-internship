@@ -15,4 +15,6 @@ public interface CvDraftRepository extends JpaRepository<CvDraft, Long> {
     public Optional<CvDraft> findByUserIdAndStatus(Long userId, DraftStatus status);
 
     public List<CvDraft> findByStatusAndUserDepartmentId(DraftStatus status, Long departmentId);
+
+    public List<CvDraft> findByStatus(DraftStatus status);
 }
