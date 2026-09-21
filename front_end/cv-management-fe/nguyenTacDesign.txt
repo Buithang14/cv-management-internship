@@ -1,0 +1,419 @@
+Design and implement the frontend UI for my CV Management System.
+
+IMPORTANT:
+Do not invent a new visual design style.
+Do not generate a generic "modern AI SaaS dashboard".
+Use established enterprise product design principles and use the following references as the design foundation:
+
+PRIMARY DESIGN REFERENCES:
+
+1. IBM Carbon Design System
+   https://carbondesignsystem.com/
+
+2. Material Design 3
+   https://m3.material.io/
+
+3. Ant Design
+   https://ant.design/
+
+4. Anti-AI-Slop UI/UX principles
+   https://github.com/rwcod/anti-ai-slop-ui
+   https://github.com/Vanszs/Anti-AI-UI
+
+The final interface should be a PRODUCT-SPECIFIC ENTERPRISE INTERNAL TOOL, not a marketing website.
+
+DESIGN DIRECTION:
+Use "Enterprise Control Plane / Enterprise Internal Tool" as the primary visual direction.
+
+The product is an internal CV management and approval system used by:
+
+* Employees
+* Tech Leads
+* HR
+
+The system manages:
+
+* Employee CVs
+* CV versions
+* CV update requests
+* Technical approval
+* HR approval
+* Rejection and resubmission
+* Department information
+* User and role information
+* Approval history
+
+The interface should feel like a real internal enterprise application that employees use every day.
+
+VISUAL CHARACTER:
+
+* Professional
+* Functional
+* Restrained
+* Information-dense
+* Clear hierarchy
+* Trustworthy
+* Consistent
+* Production-oriented
+
+Do NOT make it look like:
+
+* an AI startup landing page
+* a generic SaaS template
+* a portfolio website
+* a Dribbble concept shot
+* a futuristic dashboard
+* a "premium AI" interface
+
+ANTI-AI-SLOP RULES:
+
+Do NOT use:
+
+* Purple/indigo as the default brand color
+* Purple-to-blue gradients
+* Gradient text
+* Glassmorphism
+* Aurora backgrounds
+* Decorative blobs
+* Excessive blur
+* Giant decorative illustrations
+* Emoji icons
+* Excessive rounded cards
+* rounded-2xl on almost every component
+* excessive shadows
+* floating cards everywhere
+* generic bento grids
+* unnecessary animations
+* excessive hover scaling
+* fake statistics
+* fake testimonials
+* marketing-style copy
+* "Supercharge", "Unlock", "Seamless", "Powerful AI" or similar buzzwords
+* generic 3-card feature layouts
+* excessive empty whitespace used only to make the interface look "premium"
+
+These restrictions are based on documented anti-AI-slop UI guidance from:
+https://github.com/rwcod/anti-ai-slop-ui
+and
+https://github.com/Vanszs/Anti-AI-UI
+
+LAYOUT:
+
+Use a desktop-first enterprise application shell.
+
+Structure:
+
+LEFT SIDEBAR
+
+* Application logo/name
+* Dashboard
+* My CV
+* CV Update Requests
+* Approval
+* CV History
+* Departments
+* Users
+* Settings
+
+Only show navigation items appropriate to the authenticated user's role.
+
+TOP BAR
+
+* Page title / breadcrumb
+* Search where useful
+* Notification
+* Current user
+* Role indicator
+* User menu
+
+MAIN CONTENT
+
+* Clear page heading
+* Short contextual description where necessary
+* Primary action
+* Filters/search when relevant
+* Data tables for structured information
+* Forms for editing
+* Approval workflow components where relevant
+
+Do not turn every section into a separate floating card.
+
+COMPONENT DESIGN:
+
+Use established enterprise UI patterns.
+
+Tables should be a major component because this is an internal management system.
+
+Use:
+
+* compact but readable tables
+* clear column hierarchy
+* sorting where appropriate
+* filtering where appropriate
+* pagination
+* status indicators
+* row actions
+* empty states
+* loading states
+* error states
+
+Forms should prioritize usability over decoration.
+
+Use:
+
+* clear labels
+* helper text where necessary
+* visible validation errors
+* consistent field spacing
+* predictable button placement
+* clear primary/secondary actions
+
+STATUS SYSTEM:
+
+The CV system contains workflow states.
+
+Use semantic status colors consistently.
+
+Examples:
+
+Đã cập nhật
+→ positive/success semantic color
+
+Chưa cập nhật
+→ neutral/information semantic color
+
+Chờ Tech Lead duyệt
+→ warning/information semantic color
+
+Chờ HR duyệt
+→ warning/information semantic color
+
+Từ chối
+→ error semantic color
+
+Hủy yêu cầu
+→ neutral/error semantic color
+
+Do not rely on color alone.
+Every status should also contain readable text.
+
+APPROVAL WORKFLOW:
+
+The approval process is important to the product.
+
+Represent it clearly:
+
+Employee
+↓
+Tech Lead review
+↓
+HR final approval
+
+If HR rejects a resubmission, the system uses Smart Routing and sends the CV directly back to HR rather than requiring Tech Lead approval again.
+
+This workflow should be visually understandable without excessive decorative graphics.
+
+CV DETAIL PAGE:
+
+Prioritize the CV content itself.
+
+Use a layout similar to a professional document-management application.
+
+Possible structure:
+
+Header:
+
+* Employee name
+* Department
+* CV version
+* Current status
+* Actions
+
+Main:
+
+* CV information
+* Skills
+* Experience
+* Education
+* Projects
+* Certifications
+
+Side area or secondary section:
+
+* Approval status
+* Current approval stage
+* Version history
+* Activity/history
+
+VERSION HISTORY:
+
+Use a timeline or structured history list only where it improves understanding.
+
+Show:
+
+* version
+* updated date
+* updated by
+* status
+* approval result
+* relevant action
+
+Do not decorate the timeline unnecessarily.
+
+COLOR SYSTEM:
+
+Use a restrained enterprise palette.
+
+Prefer:
+
+* neutral background
+* neutral surfaces
+* strong readable text
+* subtle borders
+* one restrained brand accent
+* semantic colors for system states
+
+Do not use gradients as the primary visual language.
+
+Do not choose colors merely because they are currently popular in AI-generated interfaces.
+
+TYPOGRAPHY:
+
+Use a professional UI typeface and establish a clear typographic hierarchy.
+
+Use approximately:
+
+* page title
+* section heading
+* body
+* secondary text
+* table text
+* metadata
+
+Do not use oversized marketing typography.
+
+Do not use typography tricks such as:
+
+* gradient text
+* random italic words
+* decorative serif words inside headings
+* excessive letter spacing
+
+BORDERS / RADIUS / SHADOW:
+
+Use a restrained radius scale.
+
+Not everything should have the same radius.
+
+Suggested principle:
+
+* inputs/buttons: small radius
+* cards/panels: moderate radius
+* dialogs: slightly larger radius
+* pills: only when semantically appropriate
+
+Use borders to establish structure.
+
+Use shadows sparingly.
+
+Do not make every element look like a floating card.
+
+ICONS:
+
+Use one consistent icon library/style.
+
+Icons must communicate function.
+
+Do not use emoji as UI icons.
+
+Do not add icons merely for decoration.
+
+RESPONSIVE DESIGN:
+
+Desktop is the primary target because this is an internal enterprise application.
+
+Also support tablet and mobile gracefully.
+
+On smaller screens:
+
+* collapse sidebar
+* preserve important information
+* allow tables to scroll horizontally when necessary
+* do not simply shrink everything
+
+INTERACTION:
+
+Motion should be functional rather than decorative.
+
+Use subtle transitions for:
+
+* navigation
+* dropdowns
+* dialogs
+* notifications
+* state changes
+
+Avoid:
+
+* hover:scale effects everywhere
+* excessive scroll animations
+* unnecessary parallax
+* large entrance animations
+
+Accessibility:
+
+* maintain strong contrast
+* visible focus states
+* keyboard-friendly controls
+* do not use color as the only status indicator
+
+IMPORTANT IMPLEMENTATION RULE:
+
+Before generating the UI, first define:
+
+1. Visual direction
+2. Color tokens
+3. Typography tokens
+4. Spacing scale
+5. Border radius scale
+6. Elevation/shadow rules
+7. Component rules
+8. Layout rules
+9. Status colors
+10. Navigation structure
+
+Then implement the screens using those rules consistently.
+
+DO NOT generate each screen independently with a different visual style.
+
+All screens must look like parts of ONE real enterprise application.
+
+QUALITY CHECK:
+
+Before finishing, inspect the generated UI and ask:
+
+* Does this look like a real internal enterprise application?
+* Does it resemble established enterprise design systems rather than generic AI SaaS?
+* Is every visual element serving a product purpose?
+* Are tables and workflow information easy to understand?
+* Are cards being used only where useful?
+* Is the interface unnecessarily decorated?
+* Does it contain purple/indigo gradients or glassmorphism?
+* Does it look like something an AI generated from a generic dashboard prompt?
+
+If the answer to the last question is YES, revise the UI before finishing.
+
+SOURCE REFERENCES:
+
+* IBM Carbon Design System:
+  https://carbondesignsystem.com/
+* Material Design 3:
+  https://m3.material.io/
+* Ant Design:
+  https://ant.design/
+* rwcod/anti-ai-slop-ui:
+  https://github.com/rwcod/anti-ai-slop-ui
+* Vanszs/Anti-AI-UI:
+  https://github.com/Vanszs/Anti-AI-UI
+
+Use these sources as design references. Do not claim that a visual rule comes from one of these sources unless it actually does.
