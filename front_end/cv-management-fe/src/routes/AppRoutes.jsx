@@ -2,24 +2,36 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from '../pages/LoginPage';
 import DashboardPage from '../pages/DashboardPage';
+import UnauthorizedPage from '../pages/UnauthorizedPage';
+import MainLayout from '../components/MainLayout';
+import ProtectedRoute from '../components/ProtectedRoute';
 
 /**
- * Quản lý danh sách các Route (Đường dẫn trang) trong ứng dụng
+ * Quản lý danh sách các Route và Phân quyền truy cập
  */
 const AppRoutes = () => {
   return (
     <Routes>
-      {/* Tự động chuyển trang chủ / về /login nếu chưa đăng nhập */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
-      
-      {/* Đường dẫn tới trang Login */}
+      {/* 1. Public Route: Trang đăng nhập */}
       <Route path="/login" element={<LoginPage />} />
-      
-      {/* Đường dẫn tới trang Dashboard */}
-      <Route path="/dashboard" element={<DashboardPage />} />
-      
-      {/* Catch all: Chuyển các đường dẫn không tồn tại về trang Login */}
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="/unauthorized" element={<UnauthorizedPage />} />
+
+      {/* 2. Protected Routes: Tất cả trang cần Đăng nhập nằm bên trong MainLayout */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<MainLayout />}>
+          {/* Trang Dashboard chính (mọi Role đều truy cập được) */}
+          <Route path="/dashboard" element={<DashboardPage />} />
+          
+          {/* Ví dụ Protected Route theo Role trong các Phase tiếp theo: */}
+          {/* <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}> */}
+          {/*   <Route path="/admin/users" element={<AdminUserPage />} /> */}
+          {/* </Route> */}
+        </Route>
+      </Route>
+
+      {/* Default Redirect */}
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 };
