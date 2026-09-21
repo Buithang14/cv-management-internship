@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from '../pages/LoginPage';
 import DashboardPage from '../pages/DashboardPage';
 import MyCvPage from '../pages/MyCvPage';
+import TechLeadApprovalPage from '../pages/TechLeadApprovalPage';
 import UnauthorizedPage from '../pages/UnauthorizedPage';
 import MainLayout from '../components/MainLayout';
 import ProtectedRoute from '../components/ProtectedRoute';
@@ -12,7 +13,7 @@ const AppRoutes = () => {
   const userRole = user.role || 'EMPLOYEE';
   const isEmployee = userRole === 'EMPLOYEE' || userRole === 'USER' || userRole === 'INTERN';
 
-  const defaultRedirect = isEmployee ? '/my-cv' : '/dashboard';
+  const defaultRedirect = isEmployee ? '/my-cv' : (userRole === 'TECH_LEAD' ? '/techlead/evaluations' : '/dashboard');
 
   return (
     <Routes>
@@ -23,6 +24,7 @@ const AppRoutes = () => {
         <Route element={<MainLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/my-cv" element={<MyCvPage />} />
+          <Route path="/techlead/evaluations" element={<TechLeadApprovalPage />} />
         </Route>
       </Route>
 
