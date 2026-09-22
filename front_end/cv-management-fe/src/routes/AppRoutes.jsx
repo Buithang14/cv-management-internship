@@ -6,6 +6,8 @@ import MyCvPage from '../pages/MyCvPage';
 import TechLeadApprovalPage from '../pages/TechLeadApprovalPage';
 import HrReviewPage from '../pages/hr/HrReviewPage';
 import HrCvListPage from '../pages/hr/HrCvListPage';
+import UserManagementPage from '../pages/admin/UserManagementPage';
+import DepartmentManagementPage from '../pages/admin/DepartmentManagementPage';
 import UnauthorizedPage from '../pages/UnauthorizedPage';
 import MainLayout from '../components/MainLayout';
 import ProtectedRoute from '../components/ProtectedRoute';
@@ -17,7 +19,11 @@ const AppRoutes = () => {
 
   const defaultRedirect = isEmployee
     ? '/my-cv'
-    : (userRole === 'TECH_LEAD' ? '/techlead/evaluations' : (userRole === 'HR' ? '/hr/cv-review' : '/dashboard'));
+    : (userRole === 'TECH_LEAD'
+      ? '/techlead/evaluations'
+      : (userRole === 'HR'
+        ? '/hr/cv-review'
+        : (userRole === 'ADMIN' ? '/admin/users' : '/dashboard')));
 
   return (
     <Routes>
@@ -31,6 +37,8 @@ const AppRoutes = () => {
           <Route path="/techlead/evaluations" element={<TechLeadApprovalPage />} />
           <Route path="/hr/cv-review" element={<HrReviewPage />} />
           <Route path="/hr/cv-list" element={<HrCvListPage />} />
+          <Route path="/admin/users" element={<UserManagementPage />} />
+          <Route path="/admin/departments" element={<DepartmentManagementPage />} />
         </Route>
       </Route>
 
