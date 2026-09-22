@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   Card,
   Typography,
@@ -88,7 +88,7 @@ const MyCvPage = () => {
       const data = response.data || response.result || response;
       setCvData(data);
     } catch (error) {
-      console.error('Loi lay thong tin CV:', error);
+      console.error('Lỗi lấy thông tin CV:', error);
     } finally {
       setLoading(false);
     }
@@ -127,8 +127,8 @@ const MyCvPage = () => {
 
       setIsModalOpen(true);
     } catch (error) {
-      console.error('Loi khoi tao ban nhap:', error);
-      message.error(error.response?.data?.message || 'Khong the khoi tao ban nhap CV!');
+      console.error('Lỗi khởi tạo bản nháp:', error);
+      message.error(error.response?.data?.message || 'Không thể khởi tạo bản nháp CV!');
     } finally {
       setDraftLoading(false);
     }
@@ -138,7 +138,7 @@ const MyCvPage = () => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        message.error('Kich thuoc anh khong duoc vuot qua 2MB!');
+        message.error('Kích thước ảnh không được vượt quá 2MB!');
         return;
       }
       const reader = new FileReader();
@@ -146,7 +146,7 @@ const MyCvPage = () => {
         const base64Url = uploadEvent.target.result;
         form.setFieldsValue({ avatarUrl: base64Url });
         setAvatarPreview(base64Url);
-        message.success('Da tai anh len thanh cong!');
+        message.success('Đã tải ảnh lên thành công!');
       };
       reader.readAsDataURL(file);
     }
@@ -179,10 +179,10 @@ const MyCvPage = () => {
       const updatedDraft = response.data || response.result || response;
       setDraftData(updatedDraft);
 
-      message.success('Da luu ban nhap thanh cong!');
+      message.success('Đã lưu bản nháp thành công!');
     } catch (error) {
-      console.error('Loi luu ban nhap:', error);
-      message.error(error.response?.data?.message || 'Luu ban nhap that bai!');
+      console.error('Lỗi lưu bản nháp:', error);
+      message.error(error.response?.data?.message || 'Lưu bản nháp thất bại!');
     } finally {
       setDraftLoading(false);
     }
@@ -193,12 +193,12 @@ const MyCvPage = () => {
       await handleSaveDraft();
       setSubmitting(true);
       await cvApi.submitDraft(draftData.id);
-      message.success('Da nop ban nhap va gui yeu cau phe duyet thanh cong!');
+      message.success('Đã nộp bản nháp và gửi yêu cầu phê duyệt thành công!');
       setIsModalOpen(false);
       fetchMyCv();
     } catch (error) {
-      console.error('Loi nop ban nhap:', error);
-      message.error(error.response?.data?.message || 'Nop ban nhap that bai!');
+      console.error('Lỗi nộp bản nháp:', error);
+      message.error(error.response?.data?.message || 'Nộp bản nháp thất bại!');
     } finally {
       setSubmitting(false);
     }
@@ -207,24 +207,24 @@ const MyCvPage = () => {
   const renderStatusTag = (status) => {
     switch (status) {
       case 'APPROVED':
-        return <Tag icon={<CheckCircleOutlined />} color="success">Da duyet (Active)</Tag>;
+        return <Tag icon={<CheckCircleOutlined />} color="success">Đã duyệt (Active)</Tag>;
       case 'PENDING_TECH_LEAD':
-        return <Tag icon={<ClockCircleOutlined />} color="warning">Cho Tech Lead duyet</Tag>;
+        return <Tag icon={<ClockCircleOutlined />} color="warning">Chờ Tech Lead duyệt</Tag>;
       case 'PENDING_HR':
-        return <Tag icon={<ClockCircleOutlined />} color="processing">Cho HR duyet</Tag>;
+        return <Tag icon={<ClockCircleOutlined />} color="processing">Chờ HR duyệt</Tag>;
       case 'REJECTED':
       case 'REJECTED_BY_TECH':
       case 'REJECTED_BY_HR':
-        return <Tag icon={<CloseCircleOutlined />} color="error">Bi tu choi</Tag>;
+        return <Tag icon={<CloseCircleOutlined />} color="error">Bị từ chối</Tag>;
       default:
-        return <Tag color="default">Chua cap nhat</Tag>;
+        return <Tag color="default">Chưa cập nhật</Tag>;
     }
   };
 
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: 50 }}>
-        <Spin size="large" tip="Dang tai du lieu CV..." />
+        <Spin size="large" tip="Đang tải dữ liệu CV..." />
       </div>
     );
   }
@@ -234,8 +234,8 @@ const MyCvPage = () => {
       {/* THANH TIEU DE & THAO TAC */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
-          <Title level={4} style={{ margin: 0 }}>HO SO CV CA NHAN</Title>
-          <Text type="secondary">Phien ban hien tai: v{cvData?.version || 1}</Text>
+          <Title level={4} style={{ margin: 0 }}>HỒ SƠ CV CÁ NHÂN</Title>
+          <Text type="secondary">Phiên bản hiện tại: v{cvData?.version || 1}</Text>
         </div>
         <Space>
           {cvData && renderStatusTag(cvData.overallStatus)}
@@ -245,7 +245,7 @@ const MyCvPage = () => {
             onClick={handleOpenDraftModal}
             loading={draftLoading}
           >
-            Chinh Sua / Tao Ban Nhap
+            Chỉnh Sửa / Tạo Bản Nháp
           </Button>
         </Space>
       </div>
@@ -264,7 +264,7 @@ const MyCvPage = () => {
           <CvHeader
             fullName={cvData.fullName || user.username}
             avatarUrl={cvData.avatarUrl}
-            title={user.departmentName || 'Phong Cong Nghe Thong Tin'}
+            title={user.departmentName || 'Phòng Công Nghệ Thông Tin'}
             summary={cvData.summary}
             objective={cvData.objective}
           />
@@ -278,7 +278,7 @@ const MyCvPage = () => {
               <PersonalInfoSection
                 phone={cvData.phone}
                 email={user.email}
-                address="Viet Nam"
+                address="Việt Nam"
               />
               <SkillsSection skillsJson={cvData.skillsJson} />
               <div>
@@ -291,10 +291,10 @@ const MyCvPage = () => {
                   marginBottom: 12,
                   color: '#1f1f1f'
                 }}>
-                  THONG TIN BO SUNG
+                  THÔNG TIN BỔ SUNG
                 </div>
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  Ngay tao CV: {cvData.createdAt ? new Date(cvData.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
+                  Ngày tạo CV: {cvData.createdAt ? new Date(cvData.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
                 </Text>
               </div>
             </Col>
@@ -302,7 +302,7 @@ const MyCvPage = () => {
         </Card>
       ) : (
         <Empty
-          description="Ban chua co CV chinh thuc nao trong he thong. Bam nut Soan Thao ben tren de tao moi!"
+          description="Bạn chưa có CV chính thức nào trong hệ thống. Bấm nút Soạn Thảo bên trên để tạo mới!"
           style={{ padding: 60, background: '#fff', borderRadius: 8 }}
         />
       )}
@@ -313,7 +313,7 @@ const MyCvPage = () => {
       <Modal
         title={
           <span style={{ fontSize: 16, fontWeight: 700 }}>
-            ✏️ Soan Thao Ban Nhap CV
+            ✏️ Soạn Thảo Bản Nháp CV
           </span>
         }
         open={isModalOpen}
@@ -335,7 +335,7 @@ const MyCvPage = () => {
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
 
           {/* ── AVATAR ─────────────────────────────────────────────── */}
-          <Form.Item label="Anh Dai Dien Avatar" name="avatarUrl">
+          <Form.Item label="Ảnh Đại Diện Avatar" name="avatarUrl">
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               <Avatar
                 shape="square"
@@ -356,11 +356,11 @@ const MyCvPage = () => {
                   icon={<UploadOutlined />}
                   onClick={() => document.getElementById('avatar-file-input').click()}
                 >
-                  Chon Anh Tu May Tinh
+                  Chọn Ảnh Từ Máy Tính
                 </Button>
                 <div style={{ marginTop: 8 }}>
                   <Input
-                    placeholder="Hoac dan duong dan anh URL..."
+                    placeholder="Hoặc dán đường dẫn ảnh URL..."
                     value={avatarPreview}
                     onChange={(e) => {
                       const val = e.target.value;
@@ -376,25 +376,25 @@ const MyCvPage = () => {
           {/* ── THONG TIN CO BAN ───────────────────────────────────── */}
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item label="Ho va Ten" name="fullName" rules={[{ required: true, message: 'Vui long nhap ho ten!' }]}>
-                <Input placeholder="Nhap ho va ten day du" />
+              <Form.Item label="Họ và Tên" name="fullName" rules={[{ required: true, message: 'Vui lòng nhập họ tên!' }]}>
+                <Input placeholder="Nhap Họ và Tên day du" />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item label="So dien thoai" name="phone">
-                <Input placeholder="Nhap so dien thoai" />
+              <Form.Item label="Số điện thoại" name="phone">
+                <Input placeholder="Nhap Số điện thoại" />
               </Form.Item>
             </Col>
           </Row>
 
-          <Form.Item label="Muc tieu nghe nghiep & Tom tat ban than" name="objective">
-            <TextArea rows={3} placeholder="Mo ta muc tieu nghe nghiep, tom tat kinh nghiem..." />
+          <Form.Item label="Mục tiêu nghề nghiệp & Tóm tắt bản thân" name="objective">
+            <TextArea rows={3} placeholder="Mô tả mục tiêu nghề nghiệp, tóm tắt kinh nghiệm..." />
           </Form.Item>
 
           {/* ══════════════════════════════════════════════════════════
                HOC VAN — Dynamic Form List
           ═══════════════════════════════════════════════════════════ */}
-          <SectionLabel icon={<BookOutlined />}>Hoc Van</SectionLabel>
+          <SectionLabel icon={<BookOutlined />}>Học Vấn</SectionLabel>
 
           <Form.List name="educations">
             {(fields, { add, remove }) => (
@@ -420,35 +420,35 @@ const MyCvPage = () => {
                         />
                       )
                     }
-                    title={<span style={{ fontSize: 13, color: '#666' }}>Truong hoc #{name + 1}</span>}
+                    title={<span style={{ fontSize: 13, color: '#666' }}>Trường học #{name + 1}</span>}
                   >
                     <Row gutter={12}>
                       <Col span={12}>
                         <Form.Item
                           {...restField}
                           name={[name, 'school']}
-                          label="Ten truong"
-                          rules={[{ required: true, message: 'Nhap ten truong!' }]}
+                          label="Tên trường"
+                          rules={[{ required: true, message: 'Nhập tên trường!' }]}
                           style={{ marginBottom: 8 }}
                         >
-                          <Input placeholder="VD: DH Bach Khoa Ha Noi" />
+                          <Input placeholder="VD: ĐH Bách Khoa Hà Nội" />
                         </Form.Item>
                       </Col>
                       <Col span={12}>
                         <Form.Item
                           {...restField}
                           name={[name, 'degree']}
-                          label="Bang cap / Chuyen nganh"
+                          label="Bằng cấp / Chuyên ngành"
                           style={{ marginBottom: 8 }}
                         >
-                          <Input placeholder="VD: Ky su Cong nghe thong tin" />
+                          <Input placeholder="VD: Kỹ sư Công nghệ thông tin" />
                         </Form.Item>
                       </Col>
                     </Row>
                     <Form.Item
                       {...restField}
                       name={[name, 'year']}
-                      label="Nam hoc"
+                      label="Năm học"
                       style={{ marginBottom: 0 }}
                     >
                       <Input placeholder="VD: 2019 - 2023" style={{ width: '50%' }} />
@@ -461,7 +461,7 @@ const MyCvPage = () => {
                   icon={<PlusOutlined />}
                   style={{ width: '100%', marginBottom: 20, color: '#1677ff', borderColor: '#1677ff' }}
                 >
-                  + Them Truong Hoc
+                  + Thêm Trường Học
                 </Button>
               </>
             )}
@@ -470,7 +470,7 @@ const MyCvPage = () => {
           {/* ══════════════════════════════════════════════════════════
                KINH NGHIEM LAM VIEC — Dynamic Form List
           ═══════════════════════════════════════════════════════════ */}
-          <SectionLabel icon={<BankOutlined />}>Kinh Nghiem Lam Viec</SectionLabel>
+          <SectionLabel icon={<BankOutlined />}>Kinh Nghiệm Làm Việc</SectionLabel>
 
           <Form.List name="experiences">
             {(fields, { add, remove }) => (
@@ -496,15 +496,15 @@ const MyCvPage = () => {
                         />
                       )
                     }
-                    title={<span style={{ fontSize: 13, color: '#666' }}>Cong ty #{name + 1}</span>}
+                    title={<span style={{ fontSize: 13, color: '#666' }}>Công ty #{name + 1}</span>}
                   >
                     <Row gutter={12}>
                       <Col span={12}>
                         <Form.Item
                           {...restField}
                           name={[name, 'company']}
-                          label="Ten cong ty"
-                          rules={[{ required: true, message: 'Nhap ten cong ty!' }]}
+                          label="Tên công ty"
+                          rules={[{ required: true, message: 'Nhập tên công ty!' }]}
                           style={{ marginBottom: 8 }}
                         >
                           <Input placeholder="VD: FPT Software" />
@@ -514,7 +514,7 @@ const MyCvPage = () => {
                         <Form.Item
                           {...restField}
                           name={[name, 'role']}
-                          label="Vi tri / Chuc danh"
+                          label="Vị trí / Chức danh"
                           style={{ marginBottom: 8 }}
                         >
                           <Input placeholder="VD: Java Backend Developer" />
@@ -524,20 +524,20 @@ const MyCvPage = () => {
                     <Form.Item
                       {...restField}
                       name={[name, 'duration']}
-                      label="Thoi gian lam viec"
+                      label="Thời gian làm việc"
                       style={{ marginBottom: 8 }}
                     >
-                      <Input placeholder="VD: 2 nam (01/2022 - 12/2023)" style={{ width: '60%' }} />
+                      <Input placeholder="VD: 2 năm (01/2022 - 12/2023)" style={{ width: '60%' }} />
                     </Form.Item>
                     <Form.Item
                       {...restField}
                       name={[name, 'description']}
-                      label="Mo ta cong viec"
+                      label="Mô tả công việc"
                       style={{ marginBottom: 0 }}
                     >
                       <TextArea
                         rows={3}
-                        placeholder="Mo ta nhiem vu, thanh tich dat duoc..."
+                        placeholder="Mô tả nhiệm vụ, thành tích đạt được..."
                       />
                     </Form.Item>
                   </Card>
@@ -548,7 +548,7 @@ const MyCvPage = () => {
                   icon={<PlusOutlined />}
                   style={{ width: '100%', marginBottom: 20, color: '#fa8c16', borderColor: '#fa8c16' }}
                 >
-                  + Them Cong Ty / Du An
+                  + Thêm Công Ty / Dự Án
                 </Button>
               </>
             )}
@@ -557,7 +557,7 @@ const MyCvPage = () => {
           {/* ══════════════════════════════════════════════════════════
                KY NANG — Dynamic Form List
           ═══════════════════════════════════════════════════════════ */}
-          <SectionLabel icon={<ToolOutlined />}>Ky Nang Chuyen Mon</SectionLabel>
+          <SectionLabel icon={<ToolOutlined />}>Kỹ Năng Chuyên Môn</SectionLabel>
 
           <Form.List name="skills">
             {(fields, { add, remove }) => (
@@ -584,7 +584,7 @@ const MyCvPage = () => {
                         style={{ margin: 0, flex: 1 }}
                       >
                         <Input
-                          placeholder="Ten ky nang (VD: Java, Spring Boot)"
+                          placeholder="Tên kỹ năng (VD: Java, Spring Boot)"
                           size="small"
                           bordered={false}
                           style={{ background: 'transparent', padding: '0 4px' }}
@@ -600,11 +600,11 @@ const MyCvPage = () => {
                           bordered={false}
                           style={{ width: 110 }}
                           options={[
-                            { value: 'Co ban', label: 'Co ban' },
-                            { value: 'Trung binh', label: 'Trung binh' },
-                            { value: 'Kha', label: 'Kha' },
-                            { value: 'Thanh thao', label: 'Thanh thao' },
-                            { value: 'Chuyen gia', label: 'Chuyen gia' },
+                            { value: 'Cơ bản', label: 'Cơ bản' },
+                            { value: 'Trung bình', label: 'Trung bình' },
+                            { value: 'Khá', label: 'Khá' },
+                            { value: 'Thành thạo', label: 'Thành thạo' },
+                            { value: 'Chuyên gia', label: 'Chuyên gia' },
                           ]}
                         />
                       </Form.Item>
@@ -619,11 +619,11 @@ const MyCvPage = () => {
                 </div>
                 <Button
                   type="dashed"
-                  onClick={() => add({ name: '', level: 'Trung binh' })}
+                  onClick={() => add({ name: '', level: 'Trung bình' })}
                   icon={<PlusOutlined />}
                   style={{ width: '100%', marginBottom: 8, color: '#722ed1', borderColor: '#722ed1' }}
                 >
-                  + Them Ky Nang
+                  + Thêm Kỹ Năng
                 </Button>
               </>
             )}
@@ -636,3 +636,4 @@ const MyCvPage = () => {
 };
 
 export default MyCvPage;
+
