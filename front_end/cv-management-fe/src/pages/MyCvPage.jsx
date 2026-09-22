@@ -16,6 +16,7 @@ import {
   Divider,
   Avatar,
   Select,
+  Timeline,
 } from 'antd';
 import {
   EditOutlined,
@@ -27,6 +28,7 @@ import {
   UploadOutlined,
   UserOutlined,
   PlusOutlined,
+  HistoryOutlined,
   DeleteOutlined,
   BookOutlined,
   ToolOutlined,
@@ -75,7 +77,13 @@ const MyCvPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [draftData, setDraftData] = useState(null);
   const [draftLoading, setDraftLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+  
+  // State Lịch sử duyệt
+  const [logsModalOpen, setLogsModalOpen] = useState(false);
+  const [approvalLogs, setApprovalLogs] = useState([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+
   const [avatarPreview, setAvatarPreview] = useState('');
 
   const [form] = Form.useForm();
@@ -97,6 +105,26 @@ const MyCvPage = () => {
   useEffect(() => {
     fetchMyCv();
   }, []);
+
+    const handleOpenLogs = async () => {
+    setLogsModalOpen(true);
+    setLoadingLogs(true);
+    try {
+      // Vì API getDraftLogs cần draftId, ta lấy draft hiện tại trước
+      const response = await cvApi.initDraft();
+      const draft = response.data || response.result || response;
+      
+      const logResp = await cvApi.getDraftLogs(draft.id);
+      const logs = logResp.data || logResp.result || logResp || [];
+      setApprovalLogs(Array.isArray(logs) ? logs : []);
+    } catch (error) {
+      console.error('Lỗi lấy lịch sử duyệt:', error);
+      message.error('Không thể lấy lịch sử duyệt CV. Có thể bạn chưa từng nộp bản nháp nào!');
+      setLogsModalOpen(false);
+    } finally {
+      setLoadingLogs(false);
+    }
+  };
 
   const handleOpenDraftModal = async () => {
     setDraftLoading(true);
@@ -240,6 +268,12 @@ const MyCvPage = () => {
         <Space>
           {cvData && renderStatusTag(cvData.overallStatus)}
           <Button
+            icon={<HistoryOutlined />}
+            onClick={handleOpenLogs}
+          >
+            Lịch sử duyệt
+          </Button>
+          <Button
             type="primary"
             icon={<EditOutlined />}
             onClick={handleOpenDraftModal}
@@ -306,6 +340,76 @@ const MyCvPage = () => {
           style={{ padding: 60, background: '#fff', borderRadius: 8 }}
         />
       )}
+
+      {/* ═══════════════════════════════════════════════════════════
+           MODAL LỊCH SỬ DUYỆT (APPROVAL LOGS)
+      ══════════════════════════════════════════════════════════════ */}
+      <Modal
+        title={
+          <span style={{ fontSize: 16, fontWeight: 700 }}>
+            <HistoryOutlined /> Lịch Sử Phê Duyệt CV
+          </span>
+        }
+        open={logsModalOpen}
+        onCancel={() => setLogsModalOpen(false)}
+        footer={[
+          <Button key="close" onClick={() => setLogsModalOpen(false)}>
+            Đóng
+          </Button>
+        ]}
+      >
+        {loadingLogs ? (
+          <div style={{ textAlign: 'center', padding: 40 }}>
+            <Spin tip="Đang tải lịch sử..." />
+          </div>
+        ) : approvalLogs.length === 0 ? (
+          <Empty description="Chưa có lịch sử phê duyệt nào cho bản nháp này." />
+        ) : (
+          <Timeline
+            mode="left"
+            style={{ marginTop: 20 }}
+            items={approvalLogs.map(log => {
+              let color = 'gray';
+              let actionText = log.action;
+              if (log.action?.includes('REJECT')) {
+                color = 'red';
+                actionText = 'Bị Từ Chối';
+              } else if (log.action?.includes('APPROVE')) {
+                color = 'green';
+                actionText = 'Đã Duyệt';
+              } else if (log.action === 'SUBMITTED') {
+                color = 'blue';
+                actionText = 'Nộp Bản Nháp';
+              }
+
+              return {
+                color: color,
+                children: (
+                  <div>
+                    <div style={{ fontWeight: 600, color: color === 'gray' ? '#333' : color }}>
+                      {actionText} - {new Date(log.createdAt).toLocaleString('vi-VN')}
+                    </div>
+                    {log.approverName && (
+                      <div style={{ fontSize: 13, color: '#555' }}>
+                        Người duyệt: <b>{log.approverName}</b>
+                      </div>
+                    )}
+                    {log.comment && (
+                      <div style={{ 
+                        marginTop: 4, padding: 8, background: '#f5f5f5', 
+                        borderRadius: 4, fontSize: 13, fontStyle: 'italic',
+                        borderLeft: `3px solid ${color}`
+                      }}>
+                        "{log.comment}"
+                      </div>
+                    )}
+                  </div>
+                )
+              }
+            })}
+          />
+        )}
+      </Modal>
 
       {/* ═══════════════════════════════════════════════════════════
            MODAL SOAN THAO BAN NHAP CV — DYNAMIC FORM
