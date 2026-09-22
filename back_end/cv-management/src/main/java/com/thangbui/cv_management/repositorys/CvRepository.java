@@ -34,4 +34,9 @@ public interface CvRepository extends JpaRepository<Cv, Long> {
             @Param("deptId") Long deptId,
             @Param("status") CvStatus status);
 
+    // Dashboard: đếm số CV đang hoạt động theo trạng thái (UPDATED / NOT_UPDATED)
+    long countByOverallStatusAndIsActiveTrue(CvStatus status);
+
+    // Dashboard: lấy tất cả CV đang hoạt động (để tính thống kê theo phòng ban)
+    List<Cv> findAllByIsActiveTrue();
 }

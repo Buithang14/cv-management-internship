@@ -17,4 +17,7 @@ public interface CvDraftRepository extends JpaRepository<CvDraft, Long> {
     public List<CvDraft> findByStatusAndUserDepartmentId(DraftStatus status, Long departmentId);
 
     public List<CvDraft> findByStatus(DraftStatus status);
+
+    // Dashboard: đếm số bản nháp đang chờ duyệt (PENDING_TECH + PENDING_HR)
+    long countByStatusIn(List<DraftStatus> statuses);
 }
