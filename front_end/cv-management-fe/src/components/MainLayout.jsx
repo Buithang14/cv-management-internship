@@ -53,7 +53,7 @@ const MainLayout = () => {
     }
 
     // Menu dành cho HR (Duyệt CV & Quản lý danh sách CV)
-    if (userRole === 'HR' || userRole === 'ADMIN') {
+    if (userRole === 'HR') {
       items.push(
         {
           key: '/hr/cv-review',
@@ -69,7 +69,7 @@ const MainLayout = () => {
     }
 
     // Menu dành cho TECH LEAD (Đánh giá chuyên môn)
-    if (userRole === 'TECH_LEAD' || userRole === 'ADMIN') {
+    if (userRole === 'TECH_LEAD') {
       items.push({
         key: '/techlead/evaluations',
         icon: <SolutionOutlined />,

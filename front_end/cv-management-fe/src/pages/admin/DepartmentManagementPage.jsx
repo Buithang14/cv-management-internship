@@ -34,7 +34,7 @@ const DepartmentManagementPage = () => {
     setLoading(true);
     try {
       const response = await adminApi.getAllDepartments();
-      const list = response.data || response.result || response || [];
+      const list = response?.data || response?.result || response || [];
       setDepartments(Array.isArray(list) ? list : []);
     } catch (error) {
       console.error('Lỗi khi tải danh sách phòng ban:', error);

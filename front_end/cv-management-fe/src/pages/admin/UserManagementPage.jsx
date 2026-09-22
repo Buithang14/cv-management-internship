@@ -45,8 +45,8 @@ const UserManagementPage = () => {
         adminApi.getAllDepartments(),
       ]);
 
-      const usersList = usersRes.data || usersRes.result || usersRes || [];
-      const deptsList = deptsRes.data || deptsRes.result || deptsRes || [];
+      const usersList = usersRes?.data || usersRes?.result || usersRes || [];
+      const deptsList = deptsRes?.data || deptsRes?.result || deptsRes || [];
 
       setUsers(Array.isArray(usersList) ? usersList : []);
       setDepartments(Array.isArray(deptsList) ? deptsList : []);
