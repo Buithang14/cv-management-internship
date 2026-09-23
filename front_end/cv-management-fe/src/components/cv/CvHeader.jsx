@@ -1,42 +1,48 @@
 import React from 'react';
-import { Typography, Avatar } from 'antd';
+import { Avatar } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
 
-const { Title, Text, Paragraph } = Typography;
+const CvHeader = ({ fullName, avatarUrl, title, summary, objective, position }) => {
+  // Loại bỏ các hậu tố (Senior), (Employee) trong tên
+  const cleanFullName = (fullName || 'Chưa cập nhật họ tên')
+    .replace(/\s*\(Senior\)/gi, '')
+    .replace(/\s*\(Employee\)/gi, '')
+    .trim();
 
-const CvHeader = ({ fullName, avatarUrl, title, summary, objective }) => {
-  const displaySummary = summary || objective || 'Chưa cập nhật mục tiêu nghề nghiệp và tóm tắt bản thân.';
+  // Chức vụ (Position)
+  const jobPosition = position || summary || (objective && objective.length <= 60 ? objective : 'Technical Architect');
 
   return (
-    <div style={{ display: 'flex', gap: 24, marginBottom: 24, alignItems: 'flex-start' }}>
+    <div style={{ display: 'flex', gap: 24, marginBottom: 18, alignItems: 'center' }}>
       {/* Ảnh Đại Diện Avatar */}
       <div style={{ flexShrink: 0 }}>
         <Avatar
           shape="square"
-          size={140}
+          size={112}
           src={avatarUrl}
-          icon={<UserOutlined />}
-          style={{ borderRadius: 6, border: '1px solid #d9d9d9', backgroundColor: '#fafafa' }}
+          icon={<UserOutlined style={{ fontSize: 44, color: '#94a3b8' }} />}
+          style={{ borderRadius: 8, border: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}
         />
       </div>
 
-      {/* Họ tên & Tiêu đề công việc */}
+      {/* Họ tên, Phòng ban, Chức vụ */}
       <div style={{ flexGrow: 1 }}>
-        <Title level={2} style={{ margin: 0, color: '#1f1f1f', fontWeight: 700, letterSpacing: -0.5 }}>
-          {fullName || 'Chưa cập nhật họ tên'}
-        </Title>
+        <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, color: '#0f172a', letterSpacing: -0.4, lineHeight: 1.25 }}>
+          {cleanFullName}
+        </h1>
 
         {title && (
-          <Text strong style={{ fontSize: 16, color: '#595959', display: 'block', marginBottom: 12 }}>
+          <div style={{ fontSize: 15.5, color: '#475569', fontWeight: 500, marginTop: 5, lineHeight: 1.4 }}>
             {title}
-          </Text>
+          </div>
         )}
 
-        {/* Box Tóm tắt / Mục tiêu */}
-        <div style={{ background: '#f8f9fa', padding: '12px 16px', borderRadius: 6, borderLeft: '4px solid #1f1f1f' }}>
-          <Paragraph style={{ margin: 0, fontSize: 13, color: '#262626', lineHeight: 1.6 }}>
-            {displaySummary}
-          </Paragraph>
+        {/* Dòng Chức vụ */}
+        <div style={{ fontSize: 14.5, color: '#334155', marginTop: 5, lineHeight: 1.4 }}>
+          <span style={{ fontWeight: 600, color: '#0f172a' }}>Chức vụ: </span>
+          <span style={{ fontWeight: 400, color: '#334155' }}>
+            {jobPosition}
+          </span>
         </div>
       </div>
     </div>

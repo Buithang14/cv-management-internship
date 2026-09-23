@@ -20,14 +20,28 @@ const cvApi = {
     return axiosClient.put(`/cv-drafts/${id}`, data);
   },
 
-  // UC05: Nộp bản nháp để gửi duyệt (POST /api/v1/cv-drafts/${id}/submit)
+  // UC05: Nộp bản nháp để gửi duyệt (POST /api/v1/cv-drafts/{id}/submit)
   submitDraft: (id) => {
     return axiosClient.post(`/cv-drafts/${id}/submit`);
   },
 
-  // UC16: Xem lịch sử phê duyệt của bản nháp (GET /api/v1/cv-drafts/${id}/logs)
+  // UC16: Xem lịch sử phê duyệt của bản nháp (GET /api/v1/cv-drafts/{id}/logs)
   getDraftLogs: (id) => {
     return axiosClient.get(`/cv-drafts/${id}/logs`);
+  },
+
+    // Upload ảnh đại diện Avatar lên server (POST /api/v1/files/upload)
+  uploadAvatar: (formData) => {
+    return axiosClient.post('/files/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+
+  // Lấy danh sách yêu cầu cập nhật CV
+  getMyUpdateRequests: () => {
+    return axiosClient.get('/cvs/requests/me');
   },
 };
 

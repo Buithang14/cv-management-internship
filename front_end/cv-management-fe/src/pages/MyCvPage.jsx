@@ -1,6 +1,7 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Card,
+  Alert,
   Typography,
   Tag,
   Button,
@@ -42,6 +43,7 @@ import PersonalInfoSection from '../components/cv/PersonalInfoSection';
 import EducationSection from '../components/cv/EducationSection';
 import ExperienceSection from '../components/cv/ExperienceSection';
 import SkillsSection from '../components/cv/SkillsSection';
+import ObjectiveSection from '../components/cv/ObjectiveSection';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -83,11 +85,25 @@ const MyCvPage = () => {
   const [logsModalOpen, setLogsModalOpen] = useState(false);
   const [approvalLogs, setApprovalLogs] = useState([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  
+  // State yêu cầu cập nhật CV
+  const [updateRequests, setUpdateRequests] = useState([]);
 
   const [avatarPreview, setAvatarPreview] = useState('');
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   const [form] = Form.useForm();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+  const fetchUpdateRequests = async () => {
+    try {
+      const response = await cvApi.getMyUpdateRequests();
+      const list = response.data || response.result || response || [];
+      setUpdateRequests(Array.isArray(list) ? list : []);
+    } catch (error) {
+      console.error('Lỗi lấy danh sách yêu cầu cập nhật:', error);
+    }
+  };
 
   const fetchMyCv = async () => {
     setLoading(true);
@@ -104,6 +120,7 @@ const MyCvPage = () => {
 
   useEffect(() => {
     fetchMyCv();
+    fetchUpdateRequests();
   }, []);
 
     const handleOpenLogs = async () => {
@@ -141,12 +158,21 @@ const MyCvPage = () => {
       const experiences = parseJsonSafe(draft.experiencesJson || cvData?.experiencesJson);
       const skills = parseJsonSafe(draft.skillsJson || cvData?.skillsJson);
 
+      // Đồng bộ thông minh: nếu summary đang rỗng mà objective lại đang chứa chức danh (VD: "Technical Architect")
+      let initialSummary = draft.summary || cvData?.summary || '';
+      let initialObjective = draft.objective || cvData?.objective || '';
+
+      if (!initialSummary && initialObjective && initialObjective.length <= 60 && !initialObjective.includes('\n')) {
+        initialSummary = initialObjective;
+        initialObjective = '';
+      }
+
       form.setFieldsValue({
-        fullName: draft.fullName || cvData?.fullName || '',
+        fullName: (draft.fullName || cvData?.fullName || '').replace(/\s*\(Senior\)/gi, '').trim(),
         avatarUrl: initialAvatar,
         phone: draft.phone || cvData?.phone || '',
-        objective: draft.objective || cvData?.objective || '',
-        summary: draft.summary || cvData?.summary || '',
+        summary: initialSummary,
+        objective: initialObjective,
         // Dynamic lists
         educations: educations.length > 0 ? educations : [{ school: '', degree: '', year: '' }],
         experiences: experiences.length > 0 ? experiences : [{ company: '', role: '', duration: '', description: '' }],
@@ -162,21 +188,33 @@ const MyCvPage = () => {
     }
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        message.error('Kích thước ảnh không được vượt quá 2MB!');
+      if (file.size > 5 * 1024 * 1024) {
+        message.error('Kích thước ảnh không được vượt quá 5MB!');
         return;
       }
-      const reader = new FileReader();
-      reader.onload = (uploadEvent) => {
-        const base64Url = uploadEvent.target.result;
-        form.setFieldsValue({ avatarUrl: base64Url });
-        setAvatarPreview(base64Url);
-        message.success('Đã tải ảnh lên thành công!');
-      };
-      reader.readAsDataURL(file);
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      setAvatarUploading(true);
+      try {
+        const response = await cvApi.uploadAvatar(formData);
+        const resData = response.data || response.result || response;
+        const uploadedUrl = resData.url || resData;
+
+        form.setFieldsValue({ avatarUrl: uploadedUrl });
+        setAvatarPreview(uploadedUrl);
+        message.success('Đã tải ảnh đại diện lên máy chủ thành công!');
+      } catch (error) {
+        console.error('Lỗi tải ảnh lên:', error);
+        message.error(error.response?.data?.message || 'Tải ảnh lên máy chủ thất bại!');
+      } finally {
+        setAvatarUploading(false);
+        e.target.value = '';
+      }
     }
   };
 
@@ -235,17 +273,17 @@ const MyCvPage = () => {
   const renderStatusTag = (status) => {
     switch (status) {
       case 'APPROVED':
-        return <Tag icon={<CheckCircleOutlined />} color="success">Đã duyệt (Active)</Tag>;
+        return <Tag icon={<CheckCircleOutlined />} color="success" style={{ borderRadius: 4 }}>Đã duyệt (Active)</Tag>;
       case 'PENDING_TECH_LEAD':
-        return <Tag icon={<ClockCircleOutlined />} color="warning">Chờ Tech Lead duyệt</Tag>;
+        return <Tag icon={<ClockCircleOutlined />} color="warning" style={{ borderRadius: 4 }}>Chờ Tech Lead duyệt</Tag>;
       case 'PENDING_HR':
-        return <Tag icon={<ClockCircleOutlined />} color="processing">Chờ HR duyệt</Tag>;
+        return <Tag icon={<ClockCircleOutlined />} color="processing" style={{ borderRadius: 4 }}>Chờ HR duyệt</Tag>;
       case 'REJECTED':
       case 'REJECTED_BY_TECH':
       case 'REJECTED_BY_HR':
-        return <Tag icon={<CloseCircleOutlined />} color="error">Bị từ chối</Tag>;
+        return <Tag icon={<CloseCircleOutlined />} color="error" style={{ borderRadius: 4 }}>Bị từ chối</Tag>;
       default:
-        return <Tag color="default">Chưa cập nhật</Tag>;
+        return <Tag style={{ borderRadius: 4, color: '#64748b', background: '#f8fafc', border: '1px solid #e2e8f0' }}>Chưa cập nhật</Tag>;
     }
   };
 
@@ -258,18 +296,19 @@ const MyCvPage = () => {
   }
 
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto' }}>
+    <div style={{ maxWidth: 1040, margin: '0 auto', paddingBottom: 40 }}>
       {/* THANH TIEU DE & THAO TAC */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
-          <Title level={4} style={{ margin: 0 }}>HỒ SƠ CV CÁ NHÂN</Title>
-          <Text type="secondary">Phiên bản hiện tại: v{cvData?.version || 1}</Text>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#0f172a' }}>HỒ SƠ CV CÁ NHÂN</h2>
+          <span style={{ fontSize: 13.5, color: '#64748b' }}>Phiên bản hiện tại: v{cvData?.version || 1}</span>
         </div>
-        <Space>
+        <Space size="middle">
           {cvData && renderStatusTag(cvData.overallStatus)}
           <Button
             icon={<HistoryOutlined />}
             onClick={handleOpenLogs}
+            style={{ fontSize: 13.5 }}
           >
             Lịch sử duyệt
           </Button>
@@ -278,21 +317,65 @@ const MyCvPage = () => {
             icon={<EditOutlined />}
             onClick={handleOpenDraftModal}
             loading={draftLoading}
+            style={{ fontSize: 13.5 }}
           >
             Chỉnh Sửa / Tạo Bản Nháp
           </Button>
         </Space>
       </div>
 
+      {/* BANNER THÔNG BÁO YÊU CẦU CẬP NHẬT TỪ HR (NẾU CÓ) */}
+      {(() => {
+        const activeReq = updateRequests.find(r => r.status === 'PENDING');
+        if (!activeReq) return null;
+        const deadlineDate = activeReq.deadline ? new Date(activeReq.deadline) : null;
+        const isOverdue = deadlineDate && deadlineDate < new Date();
+        return (
+          <Alert
+            type={isOverdue ? 'error' : 'warning'}
+            showIcon
+            style={{ marginBottom: 20, borderRadius: 6, border: isOverdue ? '1px solid #fecaca' : '1px solid #fde68a' }}
+            message={
+              <Text strong style={{ fontSize: 14 }}>
+                {isOverdue ? '⚠️ Cảnh Báo Trễ Hạn: ' : '📢 Yêu Cầu Cập Nhật CV: '}
+                {activeReq.batchName || 'Đợt Cập Nhật CV Định Kỳ'}
+              </Text>
+            }
+            description={
+              <div style={{ marginTop: 4 }}>
+                <div>
+                  Người yêu cầu: <b>{activeReq.requestedByName || 'Phòng Nhân Sự (HR)'}</b>
+                  {deadlineDate && (
+                    <span> — Hạn chót nộp bài: <b style={{ color: isOverdue ? '#dc2626' : '#d97706' }}>{deadlineDate.toLocaleString('vi-VN')} {isOverdue && '(Đã quá hạn)'}</b></span>
+                  )}
+                </div>
+                <div style={{ marginTop: 8 }}>
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<EditOutlined />}
+                    onClick={handleOpenDraftModal}
+                    loading={draftLoading}
+                  >
+                    Soạn Thảo & Nộp CV Ngay
+                  </Button>
+                </div>
+              </div>
+            }
+          />
+        );
+      })()}
+
       {/* KHUNG CV 2 COT */}
       {cvData ? (
         <Card
           bordered={true}
           style={{
-            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-            borderRadius: 8,
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05)',
+            borderRadius: 10,
+            borderColor: '#e2e8f0',
             background: '#ffffff',
-            padding: 12
+            padding: 24
           }}
         >
           <CvHeader
@@ -302,34 +385,46 @@ const MyCvPage = () => {
             summary={cvData.summary}
             objective={cvData.objective}
           />
-          <Divider style={{ margin: '16px 0 24px 0' }} />
-          <Row gutter={32}>
+          <Divider style={{ margin: '18px 0 24px 0', borderColor: '#e2e8f0' }} />
+          <Row gutter={36}>
             <Col span={15}>
               <EducationSection educationsJson={cvData.educationsJson} />
               <ExperienceSection experiencesJson={cvData.experiencesJson} />
+              <ObjectiveSection objective={cvData.objective} summary={cvData.summary} />
             </Col>
-            <Col span={9} style={{ borderLeft: '1px solid #f0f0f0', paddingLeft: 24 }}>
+            <Col span={9} style={{ borderLeft: '1px solid #e2e8f0', paddingLeft: 24 }}>
               <PersonalInfoSection
                 phone={cvData.phone}
                 email={user.email}
-                address="Việt Nam"
               />
               <SkillsSection skillsJson={cvData.skillsJson} />
               <div>
                 <div style={{
-                  borderBottom: '2px solid #1f1f1f',
-                  paddingBottom: 4,
-                  fontWeight: 700,
-                  fontSize: 14,
-                  letterSpacing: 1,
-                  marginBottom: 12,
-                  color: '#1f1f1f'
+                  borderBottom: '1.5px solid #cbd5e1',
+                  paddingBottom: 6,
+                  fontWeight: 600,
+                  fontSize: 15,
+                  letterSpacing: 0.6,
+                  marginBottom: 14,
+                  color: '#0f172a',
+                  textTransform: 'uppercase'
                 }}>
                   THÔNG TIN BỔ SUNG
                 </div>
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  Ngày tạo CV: {cvData.createdAt ? new Date(cvData.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
-                </Text>
+                <div style={{ fontSize: 14.5, marginBottom: 10, display: 'flex', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 600, color: '#0f172a' }}>Phiên bản CV: </span>
+                  <span style={{ color: '#334155', fontWeight: 400, marginLeft: 4 }}>v{cvData.version || 1}</span>
+                </div>
+                <div style={{ fontSize: 14.5, marginBottom: 10, display: 'flex', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 600, color: '#0f172a' }}>Ngày tạo hồ sơ: </span>
+                  <span style={{ color: '#334155', fontWeight: 400, marginLeft: 4 }}>{cvData.createdAt ? new Date(cvData.createdAt).toLocaleDateString('vi-VN') : 'N/A'}</span>
+                </div>
+                {cvData.updatedAt && (
+                  <div style={{ fontSize: 14.5, display: 'flex', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 600, color: '#0f172a' }}>Cập nhật lần cuối: </span>
+                    <span style={{ color: '#334155', fontWeight: 400, marginLeft: 4 }}>{new Date(cvData.updatedAt).toLocaleDateString('vi-VN')}</span>
+                  </div>
+                )}
               </div>
             </Col>
           </Row>
@@ -458,9 +553,10 @@ const MyCvPage = () => {
                 />
                 <Button
                   icon={<UploadOutlined />}
+                  loading={avatarUploading}
                   onClick={() => document.getElementById('avatar-file-input').click()}
                 >
-                  Chọn Ảnh Từ Máy Tính
+                  {avatarUploading ? 'Đang Tải Ảnh Lên...' : 'Chọn Ảnh Từ Máy Tính'}
                 </Button>
                 <div style={{ marginTop: 8 }}>
                   <Input
@@ -491,9 +587,18 @@ const MyCvPage = () => {
             </Col>
           </Row>
 
-          <Form.Item label="Mục tiêu nghề nghiệp & Tóm tắt bản thân" name="objective">
-            <TextArea rows={3} placeholder="Mô tả mục tiêu nghề nghiệp, tóm tắt kinh nghiệm..." />
-          </Form.Item>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="Chức vụ / Vị trí chuyên môn" name="summary">
+                <Input placeholder="Ví dụ: Technical Architect, Senior Developer..." />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="Mục tiêu nghề nghiệp & Tóm tắt" name="objective">
+                <TextArea rows={1} placeholder="Mô tả mục tiêu nghề nghiệp..." />
+              </Form.Item>
+            </Col>
+          </Row>
 
           {/* ══════════════════════════════════════════════════════════
                HOC VAN — Dynamic Form List
@@ -725,7 +830,7 @@ const MyCvPage = () => {
                   type="dashed"
                   onClick={() => add({ name: '', level: 'Trung bình' })}
                   icon={<PlusOutlined />}
-                  style={{ width: '100%', marginBottom: 8, color: '#722ed1', borderColor: '#722ed1' }}
+                  style={{ width: '100%', marginBottom: 8 }}
                 >
                   + Thêm Kỹ Năng
                 </Button>

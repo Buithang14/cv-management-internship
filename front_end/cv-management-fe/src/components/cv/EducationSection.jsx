@@ -1,65 +1,88 @@
 import React from 'react';
-import { Typography } from 'antd';
 import { parseJsonField } from '../../utils/jsonUtils';
-
-const { Text, Paragraph } = Typography;
 
 const EducationSection = ({ educationsJson }) => {
   const educations = parseJsonField(educationsJson);
 
   return (
     <div style={{ marginBottom: 28 }}>
-      {/* Section Header Block */}
-      <div style={{ 
-        background: '#1f1f1f', 
-        color: '#ffffff', 
-        padding: '6px 12px', 
-        fontWeight: 700, 
-        fontSize: 14, 
-        letterSpacing: 1, 
-        marginBottom: 16,
-        display: 'inline-block',
-        minWidth: 160
-      }}>
+      {/* Section Header */}
+      <div
+        style={{
+          borderBottom: '1.5px solid #cbd5e1',
+          paddingBottom: 6,
+          fontWeight: 600,
+          fontSize: 15,
+          letterSpacing: 0.6,
+          marginBottom: 14,
+          color: '#0f172a',
+          textTransform: 'uppercase',
+        }}
+      >
         HỌC VẤN
       </div>
 
-      <div style={{ paddingLeft: 4 }}>
+      <div>
         {educations.length === 0 ? (
-          <Text type="secondary">Chưa có thông tin học vấn.</Text>
+          <div style={{ fontSize: 14, color: '#64748b', fontStyle: 'italic' }}>
+            Chưa có thông tin học vấn trong hồ sơ.
+          </div>
         ) : (
           educations.map((item, index) => {
-            // Trường hợp 1: Dữ liệu dạng Object { school, degree, year/duration, grade }
             if (typeof item === 'object' && item !== null) {
+              const schoolName = item.school || item.university || item.truong;
+              const durationTime = item.year || item.duration || item.time || item.nam;
+              const majorDegree = item.degree || item.major || item.chuyenNganh;
+              const rankGrade = item.grade || item.xepLoai;
+
               return (
-                <div key={index} style={{ marginBottom: 12 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                    <Text strong style={{ fontSize: 15, color: '#1f1f1f' }}>
-                      {item.school || item.university || item.truong || 'Trường học'}
-                    </Text>
-                    <Text type="secondary" style={{ fontSize: 12 }}>
-                      {item.year || item.duration || item.time || item.nam || ''}
-                    </Text>
-                  </div>
-                  {item.degree && (
-                    <Text style={{ fontSize: 13, color: '#595959', display: 'block' }}>
-                      Chuyên ngành: {item.degree || item.major}
-                    </Text>
+                <div
+                  key={index}
+                  style={{
+                    marginBottom: 14,
+                    paddingBottom: index < educations.length - 1 ? 12 : 0,
+                    borderBottom: index < educations.length - 1 ? '1px dashed #e2e8f0' : 'none',
+                    lineHeight: 1.7,
+                  }}
+                >
+                  {schoolName && (
+                    <div style={{ fontSize: 15 }}>
+                      <span style={{ fontWeight: 600, color: '#0f172a' }}>Trường đại học / Cơ sở đào tạo: </span>
+                      <span style={{ color: '#334155', fontWeight: 400 }}>{schoolName}</span>
+                    </div>
                   )}
-                  {item.grade && (
-                    <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
-                      Xếp loại: {item.grade}
-                    </Text>
+
+                  {durationTime && (
+                    <div style={{ fontSize: 14.5 }}>
+                      <span style={{ fontWeight: 600, color: '#0f172a' }}>Năm bắt đầu - kết thúc: </span>
+                      <span style={{ color: '#334155', fontWeight: 400 }}>{durationTime}</span>
+                    </div>
+                  )}
+
+                  {majorDegree && (
+                    <div style={{ fontSize: 14.5 }}>
+                      <span style={{ fontWeight: 600, color: '#0f172a' }}>Chuyên ngành / Bằng cấp: </span>
+                      <span style={{ color: '#334155', fontWeight: 400 }}>{majorDegree}</span>
+                    </div>
+                  )}
+
+                  {rankGrade && (
+                    <div style={{ fontSize: 14.5 }}>
+                      <span style={{ fontWeight: 600, color: '#0f172a' }}>Xếp loại tốt nghiệp: </span>
+                      <span style={{ color: '#334155', fontWeight: 400 }}>{rankGrade}</span>
+                    </div>
                   )}
                 </div>
               );
             }
 
-            // Trường hợp 2: Dữ liệu dạng String (chuỗi text thường)
             return (
-              <Paragraph key={index} style={{ whiteSpace: 'pre-line', fontSize: 14, color: '#262626', marginBottom: 8 }}>
+              <div
+                key={index}
+                style={{ fontSize: 14.5, color: '#334155', lineHeight: 1.7, marginBottom: 8 }}
+              >
                 {String(item)}
-              </Paragraph>
+              </div>
             );
           })
         )}
