@@ -20,6 +20,8 @@ public class CvDraftDTO {
     // Lấy thông tin cơ bản của User (tránh vòng lặp JSON như trong CvDTO)
     private Long userId;
     private String userFullName;
+    private String departmentName;
+    private String email;
 
     // Các khóa ngoại liên quan
     private Long requestId;     // ID của yêu cầu cập nhật CV (nếu có)

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Table,
   Card,
@@ -13,23 +13,29 @@ import {
   Row,
   Col,
   Empty,
+  Tooltip,
 } from 'antd';
 import {
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  EyeOutlined,
-  ClockCircleOutlined,
   CheckOutlined,
   CloseOutlined,
+  EyeOutlined,
+  ClockCircleOutlined,
+  HistoryOutlined,
+  SearchOutlined,
+  ReloadOutlined,
+  FileDoneOutlined,
+  AuditOutlined,
 } from '@ant-design/icons';
 import hrApi from '../../api/hrApi';
+import CvApprovalHistoryModal from '../../components/CvApprovalHistoryModal';
 
-// Import sub-components CV 2 cột
+// Sub-components CV 2 cột
 import CvHeader from '../../components/cv/CvHeader';
 import PersonalInfoSection from '../../components/cv/PersonalInfoSection';
 import EducationSection from '../../components/cv/EducationSection';
 import ExperienceSection from '../../components/cv/ExperienceSection';
 import SkillsSection from '../../components/cv/SkillsSection';
+import ObjectiveSection from '../../components/cv/ObjectiveSection';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -37,10 +43,15 @@ const { TextArea } = Input;
 const HrReviewPage = () => {
   const [loading, setLoading] = useState(false);
   const [drafts, setDrafts] = useState([]);
+  const [searchText, setSearchText] = useState('');
 
   // State cho Modal Preview CV
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [selectedDraft, setSelectedDraft] = useState(null);
+
+  // State cho Modal Lịch sử duyệt
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [historyDraftId, setHistoryDraftId] = useState(null);
 
   // State cho Modal Phê duyệt / Từ chối
   const [actionModalOpen, setActionModalOpen] = useState(false);
@@ -67,9 +78,25 @@ const HrReviewPage = () => {
     fetchPendingDrafts();
   }, []);
 
+  const filteredDrafts = useMemo(() => {
+    if (!searchText.trim()) return drafts;
+    const lower = searchText.toLowerCase().trim();
+    return drafts.filter((d) => {
+      const name = (d.fullName || d.userFullName || '').toLowerCase();
+      const idStr = String(d.id || '');
+      const phone = (d.phone || '').toLowerCase();
+      return name.includes(lower) || idStr.includes(lower) || phone.includes(lower);
+    });
+  }, [drafts, searchText]);
+
   const handleOpenPreview = (record) => {
     setSelectedDraft(record);
     setPreviewModalOpen(true);
+  };
+
+  const handleOpenHistory = (draftId) => {
+    setHistoryDraftId(draftId);
+    setHistoryModalOpen(true);
   };
 
   const handleOpenActionModal = (id, type) => {
@@ -81,7 +108,7 @@ const HrReviewPage = () => {
 
   const handleExecuteAction = async () => {
     if (actionType === 'REJECT' && !note.trim()) {
-      message.warning('Vui lòng nhập lý do từ chối!');
+      message.warning('Vui lòng nhập lý do từ chối để nhân viên biết nguyên nhân!');
       return;
     }
 
@@ -111,8 +138,8 @@ const HrReviewPage = () => {
       title: 'Mã Bản Nháp',
       dataIndex: 'id',
       key: 'id',
-      width: 110,
-      render: (id) => <Text strong>#DRAFT-{id}</Text>,
+      width: 120,
+      render: (id) => <Tag color="blue">#DRAFT-{id}</Tag>,
     },
     {
       title: 'Nhân Viên',
@@ -120,96 +147,168 @@ const HrReviewPage = () => {
       key: 'userFullName',
       render: (name, record) => (
         <div>
-          <Text strong style={{ color: '#722ed1' }}>{record.fullName || name || 'Chưa cập nhật'}</Text>
-          {record.phone && <div><Text type="secondary" style={{ fontSize: 12 }}>SĐT: {record.phone}</Text></div>}
+          <Text strong style={{ color: '#1677ff', fontSize: 14 }}>
+            {record.fullName || name || 'Chưa cập nhật'}
+          </Text>
+          {record.phone && (
+            <div>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                SĐT: {record.phone}
+              </Text>
+            </div>
+          )}
         </div>
       ),
     },
     {
-      title: 'Tóm Tắt Vị Trí',
+      title: 'Tóm Tắt Vị Trí / Mục Tiêu',
       dataIndex: 'summary',
       key: 'summary',
       ellipsis: true,
-      render: (summary, record) => summary || record.objective || 'Chưa cập nhật',
+      render: (summary, record) => (
+        <span title={summary || record.objective || ''}>
+          {summary || record.objective || <Text type="secondary">Chưa cập nhật</Text>}
+        </span>
+      ),
     },
     {
-      title: 'Ngày Đã Duyệt Trạm 1',
+      title: 'Duyệt Trạm 1 (Tech Lead)',
       dataIndex: 'updatedAt',
       key: 'updatedAt',
-      width: 160,
-      render: (date) => (date ? new Date(date).toLocaleString('vi-VN') : 'N/A'),
+      width: 170,
+      render: (date) => (
+        <div>
+          <div><Text style={{ fontSize: 13 }}>{date ? new Date(date).toLocaleDateString('vi-VN') : 'N/A'}</Text></div>
+          <div><Text type="secondary" style={{ fontSize: 11 }}>{date ? new Date(date).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : ''}</Text></div>
+        </div>
+      ),
     },
     {
       title: 'Trạng Thái',
       dataIndex: 'status',
       key: 'status',
-      width: 180,
+      width: 190,
       render: () => (
-        <Tag icon={<ClockCircleOutlined />} color="processing">
+        <Tag icon={<ClockCircleOutlined />} color="blue">
           Chờ HR Duyệt Chót (Trạm 2)
         </Tag>
       ),
     },
     {
-      title: 'Hành Động',
+      title: 'Thao Tác',
       key: 'actions',
-      width: 280,
+      width: 130,
+      align: 'center',
       render: (_, record) => (
-        <Space size="small">
-          <Button icon={<EyeOutlined />} onClick={() => handleOpenPreview(record)}>
-            Xem CV
-          </Button>
-          <Button
-            type="primary"
-            style={{ backgroundColor: '#722ed1', borderColor: '#722ed1' }}
-            icon={<CheckOutlined />}
-            onClick={() => handleOpenActionModal(record.id, 'APPROVE')}
-          >
-            Duyệt Chót
-          </Button>
-          <Button
-            danger
-            icon={<CloseOutlined />}
-            onClick={() => handleOpenActionModal(record.id, 'REJECT')}
-          >
-            Từ Chối
-          </Button>
-        </Space>
+        <Button
+          type="primary"
+          size="small"
+          icon={<EyeOutlined />}
+          onClick={() => handleOpenPreview(record)}
+        >
+          Xem CV
+        </Button>
       ),
     },
   ];
 
   return (
     <div>
-      <div style={{ marginBottom: 20 }}>
-        <Title level={4} style={{ margin: 0 }}>HR — Duyệt Chót Bản Nháp CV (Trạm 2)</Title>
-        <Text type="secondary">
-          Danh sách bản nháp CV đã vượt qua vòng duyệt kỹ thuật của Tech Lead, đang chờ HR duyệt chót để ban hành phiên bản CV mới.
-        </Text>
+      {/* Header */}
+      <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+        <div>
+          <Title level={4} style={{ margin: 0, fontWeight: 600 }}>
+            HR — Duyệt Chót Bản Nháp CV (Trạm 2)
+          </Title>
+          <Text type="secondary" style={{ fontSize: 13 }}>
+            Danh sách bản nháp CV đã qua vòng duyệt chuyên môn của Tech Lead, đang chờ HR phê duyệt chót để ban hành phiên bản CV mới.
+          </Text>
+        </div>
+
+        <Space>
+          <Tag color="blue" style={{ padding: '4px 12px', fontSize: 13, borderRadius: 16 }}>
+            <ClockCircleOutlined style={{ marginRight: 6 }} />
+            Đang chờ duyệt: <strong>{drafts.length}</strong> hồ sơ
+          </Tag>
+          <Button icon={<ReloadOutlined />} onClick={fetchPendingDrafts} loading={loading}>
+            Làm mới
+          </Button>
+        </Space>
       </div>
 
-      <Card bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+      {/* Filter / Search Bar */}
+      <Card
+        bordered={false}
+        style={{ marginBottom: 16, borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
+        bodyStyle={{ padding: '12px 16px' }}
+      >
+        <Row gutter={[16, 12]} align="middle" justify="space-between">
+          <Col xs={24} sm={12} md={8}>
+            <Input
+              prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+              placeholder="Tìm theo tên nhân viên, mã bản nháp..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              allowClear
+            />
+          </Col>
+          <Col>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              Hiển thị: <strong>{filteredDrafts.length}</strong> / {drafts.length} bản nháp
+            </Text>
+          </Col>
+        </Row>
+      </Card>
+
+      {/* Main Table */}
+      <Card
+        bordered={false}
+        style={{ borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
+        bodyStyle={{ padding: 0 }}
+      >
         <Table
           columns={columns}
-          dataSource={drafts}
+          dataSource={filteredDrafts}
           rowKey="id"
           loading={loading}
-          pagination={{ pageSize: 10 }}
-          locale={{ emptyText: <Empty description="Không có CV nào đang chờ HR duyệt chót." /> }}
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50'],
+            showTotal: (total) => `Tổng số ${total} bản nháp`,
+          }}
+          locale={{
+            emptyText: (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={
+                  searchText
+                    ? 'Không tìm thấy bản nháp phù hợp với từ khóa.'
+                    : 'Hiện tại không có bản nháp CV nào chờ HR duyệt chót.'
+                }
+              />
+            ),
+          }}
         />
       </Card>
 
       {/* MODAL XEM CHI TIẾT CV PREVIEW */}
       <Modal
         title={
-          <Text strong style={{ fontSize: 16 }}>
-            Phê Duyệt Chót CV — #{selectedDraft?.id} ({selectedDraft?.fullName || selectedDraft?.userFullName})
-          </Text>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <FileDoneOutlined style={{ color: '#1677ff' }} />
+            <Text strong style={{ fontSize: 16 }}>
+              Duyệt Chót Bản Nháp CV — #DRAFT-{selectedDraft?.id} ({selectedDraft?.fullName || selectedDraft?.userFullName})
+            </Text>
+          </div>
         }
         open={previewModalOpen}
         onCancel={() => setPreviewModalOpen(false)}
         width={960}
         footer={[
+          <Button key="history" icon={<HistoryOutlined />} onClick={() => handleOpenHistory(selectedDraft?.id)}>
+            Lịch Sử Duyệt
+          </Button>,
           <Button key="close" onClick={() => setPreviewModalOpen(false)}>
             Đóng
           </Button>,
@@ -224,7 +323,7 @@ const HrReviewPage = () => {
           <Button
             key="approve"
             type="primary"
-            style={{ backgroundColor: '#722ed1', borderColor: '#722ed1' }}
+            style={{ backgroundColor: '#16a34a', borderColor: '#16a34a' }}
             icon={<CheckOutlined />}
             onClick={() => handleOpenActionModal(selectedDraft?.id, 'APPROVE')}
           >
@@ -237,7 +336,7 @@ const HrReviewPage = () => {
             <CvHeader
               fullName={selectedDraft.fullName || selectedDraft.userFullName}
               avatarUrl={selectedDraft.avatarUrl}
-              title="Đã Duyệt Chuyên Môn Trạm 1 — Chờ HR Duyệt Chót"
+              title={selectedDraft.departmentName || 'Phòng Công Nghệ Thông Tin'}
               summary={selectedDraft.summary}
               objective={selectedDraft.objective}
             />
@@ -248,20 +347,55 @@ const HrReviewPage = () => {
               <Col span={15}>
                 <EducationSection educationsJson={selectedDraft.educationsJson} />
                 <ExperienceSection experiencesJson={selectedDraft.experiencesJson} />
+                <ObjectiveSection objective={selectedDraft.objective} summary={selectedDraft.summary} />
               </Col>
 
               <Col span={9} style={{ borderLeft: '1px solid #f0f0f0', paddingLeft: 24 }}>
                 <PersonalInfoSection
                   phone={selectedDraft.phone}
-                  email="N/A"
-                  address="Việt Nam"
+                  email={selectedDraft.email}
                 />
                 <SkillsSection skillsJson={selectedDraft.skillsJson} />
+
+                <div>
+                  <div style={{
+                    borderBottom: '1.5px solid #cbd5e1',
+                    paddingBottom: 6,
+                    fontWeight: 600,
+                    fontSize: 15,
+                    letterSpacing: 0.6,
+                    marginBottom: 14,
+                    color: '#0f172a',
+                    textTransform: 'uppercase'
+                  }}>
+                    THÔNG TIN BỔ SUNG
+                  </div>
+                  <div style={{ fontSize: 14, color: '#475569', marginBottom: 6 }}>
+                    <span>Ngày gửi duyệt: </span>
+                    <span style={{ color: '#0f172a', fontWeight: 500 }}>
+                      {selectedDraft.createdAt ? new Date(selectedDraft.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 14, color: '#475569' }}>
+                    <span>Cập nhật lần cuối: </span>
+                    <span style={{ color: '#0f172a', fontWeight: 500 }}>
+                      {selectedDraft.updatedAt ? new Date(selectedDraft.updatedAt).toLocaleDateString('vi-VN') : 'N/A'}
+                    </span>
+                  </div>
+                </div>
               </Col>
             </Row>
           </div>
         )}
       </Modal>
+
+      {/* MODAL LỊCH SỬ DUYỆT */}
+      <CvApprovalHistoryModal
+        open={historyModalOpen}
+        onCancel={() => setHistoryModalOpen(false)}
+        draftId={historyDraftId}
+        title="Lịch Sử Thẩm Định Bản Nháp CV"
+      />
 
       {/* MODAL XÁC NHẬN ACTION */}
       <Modal
@@ -277,13 +411,13 @@ const HrReviewPage = () => {
         okText={actionType === 'APPROVE' ? 'Duyệt Chót & Ban Hành' : 'Gửi Từ Chối'}
         okButtonProps={{
           danger: actionType === 'REJECT',
-          style: actionType === 'APPROVE' ? { backgroundColor: '#722ed1', borderColor: '#722ed1' } : {},
+          style: actionType === 'APPROVE' ? { backgroundColor: '#16a34a', borderColor: '#16a34a' } : {},
         }}
       >
         <div style={{ marginTop: 16 }}>
           {actionType === 'APPROVE' ? (
             <p>
-              Bạn có chắc chắn muốn <Text strong style={{ color: '#722ed1' }}>Duyệt Chót</Text> bản nháp CV này không? Hệ thống sẽ tự động cập nhật bản nháp này thành <Text strong type="success">CV Chính Thức (Tăng Version)</Text>.
+              Bạn có chắc chắn muốn <Text strong style={{ color: '#16a34a' }}>Duyệt Chót</Text> bản nháp CV này không? Hệ thống sẽ tự động cập nhật bản nháp này thành <Text strong type="success">CV Chính Thức (Tăng Version)</Text>.
             </p>
           ) : (
             <p>

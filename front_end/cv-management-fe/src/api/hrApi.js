@@ -1,4 +1,4 @@
-import axiosClient from './axiosClient';
+﻿import axiosClient from './axiosClient';
 
 /**
  * Service API dành cho HR (Nghiệp vụ Nhân sự & Duyệt CV Trạm 2)
@@ -37,6 +37,11 @@ const hrApi = {
   // UC12: HR hủy yêu cầu cập nhật CV
   cancelUpdateRequest: (id) => {
     return axiosClient.put(`/hr/requests/${id}/cancel`);
+  },
+
+  // Lấy tất cả yêu cầu cập nhật CV
+  getAllUpdateRequests: () => {
+    return axiosClient.get('/hr/requests');
   },
 };
 

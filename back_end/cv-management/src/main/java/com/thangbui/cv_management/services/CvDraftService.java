@@ -40,21 +40,33 @@ public class CvDraftService {
     private final CvApprovalLogRepository cvApprovalLogRepository;
     private final CvUpdateRequestRepository cvUpdateRequestRepository;
 
-    // khởi tạo một cv
+    // khởi tạo hoặc lấy bản nháp CV để soạn thảo
     @Transactional
     public CvDraftDTO initDraft(Long userId) {
-
-        Optional<CvDraft> existingDraft = cvDraftRepository.findByUserIdAndStatus(userId, DraftStatus.DRAFTING);
-        // Nếu có rồi thì trả về luôn, không tạo mới nữa
-        if (existingDraft.isPresent()) {
-            return mapToDTO(existingDraft.get());
+        // 1. Kiểm tra nếu có bản nháp đang chờ duyệt (PENDING_TECH hoặc PENDING_HR) -> Chặn không cho tạo mới
+        boolean hasPendingDraft = cvDraftRepository.existsByUserIdAndStatusIn(
+                userId,
+                List.of(DraftStatus.PENDING_TECH, DraftStatus.PENDING_HR)
+        );
+        if (hasPendingDraft) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "Bản nháp đang trong quá trình xét duyệt, không thể tạo mới");
         }
-        // 2. Nếu chưa có, tìm CV gốc đang hoạt động (isActive = true) để clone
+
+        // 2. Tìm bản nháp hiện có đang ở trạng thái có thể chỉnh sửa (DRAFTING, REJECTED_BY_TECH, REJECTED_BY_HR)
+        Optional<CvDraft> editableDraft = cvDraftRepository.findFirstByUserIdAndStatusInOrderByUpdatedAtDesc(
+                userId,
+                List.of(DraftStatus.DRAFTING, DraftStatus.REJECTED_BY_TECH, DraftStatus.REJECTED_BY_HR)
+        );
+        if (editableDraft.isPresent()) {
+            return mapToDTO(editableDraft.get());
+        }
+
+        // 3. Nếu chưa có, tìm CV gốc đang hoạt động (isActive = true) để clone
         Cv activeCv = cvRepository.findByUserIdAndIsActiveTrue(userId)
                 .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND,
-                        "không tìm thấy CV nào đang hoạt động để tạo bản nháp"));
+                        "Không tìm thấy CV nào đang hoạt động để tạo bản nháp"));
 
-        // 3. khởi tạo đối tượng CvDraft mới và clone thông tin từ actuveCv
+        // 4. Khởi tạo đối tượng CvDraft mới và clone thông tin từ activeCv
         CvDraft draft = new CvDraft();
         draft.setUser(activeCv.getUser());
         draft.setBasedOnCv(activeCv);
@@ -68,10 +80,15 @@ public class CvDraftService {
         draft.setEducationsJson(activeCv.getEducationsJson());
         draft.setSkillsJson(activeCv.getSkillsJson());
 
+        // 5. Nếu có yêu cầu cập nhật CV đang PENDING từ HR, tự động liên kết vào bản nháp
+        cvUpdateRequestRepository.findAllByTargetUserIdOrderByCreatedAtDesc(userId).stream()
+                .filter(req -> req.getStatus() == RequestStatus.PENDING)
+                .findFirst()
+                .ifPresent(draft::setRequest);
+
         CvDraft savedDraft = cvDraftRepository.save(draft);
 
         return mapToDTO(savedDraft);
-
     }
 
     // cập nhật cv
@@ -146,6 +163,10 @@ public class CvDraftService {
         if (draft.getUser() != null) {
             dto.setUserId(draft.getUser().getId());
             dto.setUserFullName(draft.getUser().getFullName());
+            dto.setEmail(draft.getUser().getEmail());
+            if (draft.getUser().getDepartment() != null) {
+                dto.setDepartmentName(draft.getUser().getDepartment().getName());
+            }
         }
         if (draft.getBasedOnCv() != null) {
             dto.setBasedOnCvId(draft.getBasedOnCv().getId());
