@@ -123,20 +123,17 @@ const MyCvPage = () => {
     fetchUpdateRequests();
   }, []);
 
-    const handleOpenLogs = async () => {
+  const handleOpenLogs = async () => {
     setLogsModalOpen(true);
     setLoadingLogs(true);
     try {
-      // Vì API getDraftLogs cần draftId, ta lấy draft hiện tại trước
-      const response = await cvApi.initDraft();
-      const draft = response.data || response.result || response;
-      
-      const logResp = await cvApi.getDraftLogs(draft.id);
+      // Gọi trực tiếp API lấy lịch sử bản nháp mới nhất của nhân viên
+      const logResp = await cvApi.getMyDraftLogs();
       const logs = logResp.data || logResp.result || logResp || [];
       setApprovalLogs(Array.isArray(logs) ? logs : []);
     } catch (error) {
       console.error('Lỗi lấy lịch sử duyệt:', error);
-      message.error('Không thể lấy lịch sử duyệt CV. Có thể bạn chưa từng nộp bản nháp nào!');
+      message.error(error.response?.data?.message || 'Không thể lấy lịch sử duyệt CV.');
       setLogsModalOpen(false);
     } finally {
       setLoadingLogs(false);
@@ -158,14 +155,9 @@ const MyCvPage = () => {
       const experiences = parseJsonSafe(draft.experiencesJson || cvData?.experiencesJson);
       const skills = parseJsonSafe(draft.skillsJson || cvData?.skillsJson);
 
-      // Đồng bộ thông minh: nếu summary đang rỗng mà objective lại đang chứa chức danh (VD: "Technical Architect")
-      let initialSummary = draft.summary || cvData?.summary || '';
-      let initialObjective = draft.objective || cvData?.objective || '';
-
-      if (!initialSummary && initialObjective && initialObjective.length <= 60 && !initialObjective.includes('\n')) {
-        initialSummary = initialObjective;
-        initialObjective = '';
-      }
+      // Dữ liệu tóm tắt và mục tiêu
+      const initialSummary = draft.summary || cvData?.summary || '';
+      const initialObjective = draft.objective || cvData?.objective || '';
 
       form.setFieldsValue({
         fullName: (draft.fullName || cvData?.fullName || '').replace(/\s*\(Senior\)/gi, '').trim(),
@@ -273,7 +265,12 @@ const MyCvPage = () => {
   const renderStatusTag = (status) => {
     switch (status) {
       case 'APPROVED':
-        return <Tag icon={<CheckCircleOutlined />} color="success" style={{ borderRadius: 4 }}>Đã duyệt (Active)</Tag>;
+      case 'UPDATED':
+        return <Tag icon={<CheckCircleOutlined />} color="success" style={{ borderRadius: 4 }}>Đã cập nhật</Tag>;
+      case 'NOT_UPDATED':
+        return <Tag icon={<ClockCircleOutlined />} color="warning" style={{ borderRadius: 4 }}>Chưa cập nhật</Tag>;
+      case 'REQUEST_CANCELED':
+        return <Tag style={{ borderRadius: 4, color: '#64748b' }}>Đã hủy</Tag>;
       case 'PENDING_TECH_LEAD':
         return <Tag icon={<ClockCircleOutlined />} color="warning" style={{ borderRadius: 4 }}>Chờ Tech Lead duyệt</Tag>;
       case 'PENDING_HR':
@@ -379,23 +376,23 @@ const MyCvPage = () => {
           }}
         >
           <CvHeader
-            fullName={cvData.fullName || user.username}
+            fullName={cvData.fullName || user.fullName || user.username}
             avatarUrl={cvData.avatarUrl}
-            title={user.departmentName || 'Phòng Công Nghệ Thông Tin'}
+            title={cvData.departmentName || user.departmentName || 'Phòng ban chưa cập nhật'}
             summary={cvData.summary}
             objective={cvData.objective}
           />
           <Divider style={{ margin: '18px 0 24px 0', borderColor: '#e2e8f0' }} />
           <Row gutter={36}>
             <Col span={15}>
+              <ObjectiveSection objective={cvData.objective} summary={cvData.summary} />
               <EducationSection educationsJson={cvData.educationsJson} />
               <ExperienceSection experiencesJson={cvData.experiencesJson} />
-              <ObjectiveSection objective={cvData.objective} summary={cvData.summary} />
             </Col>
             <Col span={9} style={{ borderLeft: '1px solid #e2e8f0', paddingLeft: 24 }}>
               <PersonalInfoSection
                 phone={cvData.phone}
-                email={user.email}
+                email={cvData.email || user.email}
               />
               <SkillsSection skillsJson={cvData.skillsJson} />
               <div>
@@ -589,13 +586,13 @@ const MyCvPage = () => {
 
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item label="Chức vụ / Vị trí chuyên môn" name="summary">
-                <Input placeholder="Ví dụ: Technical Architect, Senior Developer..." />
+              <Form.Item label="Tóm tắt bản thân (Summary)" name="summary">
+                <TextArea rows={3} placeholder="Mô tả tóm tắt về năng lực, điểm mạnh và kinh nghiệm nổi bật..." />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item label="Mục tiêu nghề nghiệp & Tóm tắt" name="objective">
-                <TextArea rows={1} placeholder="Mô tả mục tiêu nghề nghiệp..." />
+              <Form.Item label="Mục tiêu nghề nghiệp (Objective)" name="objective">
+                <TextArea rows={3} placeholder="Mô tả mục tiêu nghề nghiệp ngắn hạn và dài hạn..." />
               </Form.Item>
             </Col>
           </Row>

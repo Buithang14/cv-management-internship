@@ -7,5 +7,7 @@ import com.thangbui.cv_management.entity.CvUpdateRequest;
 
 @Repository
 public interface CvUpdateRequestRepository extends JpaRepository<CvUpdateRequest, Long> {
+    java.util.List<CvUpdateRequest> findAllByTargetUserIdOrderByCreatedAtDesc(Long targetUserId);
+    java.util.List<CvUpdateRequest> findAllByOrderByCreatedAtDesc();
 
 }

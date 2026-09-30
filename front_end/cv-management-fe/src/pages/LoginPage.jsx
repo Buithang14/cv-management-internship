@@ -3,11 +3,13 @@ import { Form, Input, Button, Card, Typography, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import authApi from '../api/authApi';
+import EcmLogo from '../components/common/EcmLogo';
 
 const { Title, Text } = Typography;
 
 const LoginPage = () => {
   const [loading, setLoading] = useState(false);
+  const [form] = Form.useForm();
   const navigate = useNavigate();
 
   const onFinish = async (values) => {
@@ -21,20 +23,28 @@ const LoginPage = () => {
       const user = {
         userId: backendUser.id || backendUser.userId,
         username: backendUser.username || values.username,
-        fullName: backendUser.fullName || '',
+        fullName: (backendUser.fullName || '').replace(/\s*\(Employee\)/gi, '').trim(),
+        email: backendUser.email || '',
         role: backendUser.role || 'EMPLOYEE',
+        departmentId: backendUser.departmentId || null,
+        departmentName: backendUser.departmentName || '',
       };
 
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
 
-      message.success(`Đăng nhập thành công! Chào mừng ${user.username}`);
+      message.success(`Đăng nhập thành công! Chào mừng ${user.fullName || user.username}`);
 
-      // Tối ưu UX: Nếu là Nhân viên (EMPLOYEE) -> Chuyển thẳng tới trang CV Cá Nhân /my-cv
-      if (user.role === 'EMPLOYEE' || user.role === 'USER' || user.role === 'INTERN') {
+      // Tối ưu UX theo Role
+      if (user.role === 'EMPLOYEE') {
         navigate('/my-cv');
+      } else if (user.role === 'TECH_LEAD') {
+        navigate('/techlead/evaluations');
+      } else if (user.role === 'HR') {
+        navigate('/hr/cv-review');
+      } else if (user.role === 'ADMIN') {
+        navigate('/admin/users');
       } else {
-        // HR, TECH_LEAD, ADMIN -> Vào Dashboard tổng quan
         navigate('/dashboard');
       }
     } catch (error) {
@@ -46,68 +56,104 @@ const LoginPage = () => {
     }
   };
 
+
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '100vh',
-      backgroundColor: '#f0f2f5'
-    }}>
-      <Card 
-        style={{ width: 400, boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)', borderRadius: 6 }}
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        backgroundColor: '#f4f6f8',
+        padding: 16,
+      }}
+    >
+      <Card
+        style={{
+          width: '100%',
+          maxWidth: 420,
+          boxShadow: '0 4px 20px rgba(15, 23, 42, 0.06)',
+          borderRadius: 8,
+          borderColor: '#e2e8f0',
+        }}
         bordered={true}
       >
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <Title level={3} style={{ margin: 0, color: '#1677ff' }}>
-            CV MANAGEMENT SYSTEM
-          </Title>
-          <Text type="secondary">Hệ thống Quản lý & Phê duyệt CV Nội bộ</Text>
+        {/* Logo & Tiêu đề hệ thống */}
+        <div style={{ textAlign: 'center', marginBottom: 26 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+            <EcmLogo size={40} />
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', lineHeight: 1.15, letterSpacing: '0.3px' }}>
+                ECM
+              </div>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: '#475569', lineHeight: 1.25, marginTop: 2 }}>
+                Employee CV Management
+              </div>
+            </div>
+          </div>
+
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#0f172a', letterSpacing: -0.3 }}>
+            Đăng nhập
+          </h2>
+          <Text type="secondary" style={{ fontSize: 13, display: 'block', marginTop: 4 }}>
+            Hệ thống Quản lý & Phê duyệt CV Doanh nghiệp
+          </Text>
         </div>
 
+        {/* Biểu mẫu đăng nhập */}
         <Form
+          form={form}
           name="login_form"
           layout="vertical"
           onFinish={onFinish}
           autoComplete="off"
+          requiredMark={false}
         >
           <Form.Item
-            label="Tài khoản"
+            label={<Text strong style={{ fontSize: 13, color: '#334155' }}>Tên đăng nhập</Text>}
             name="username"
             rules={[{ required: true, message: 'Vui lòng nhập tên tài khoản!' }]}
           >
-            <Input 
-              prefix={<UserOutlined style={{ color: 'rgba(0,0,0,.25)' }} />} 
-              placeholder="Nhập tên tài khoản" 
+            <Input
+              prefix={<UserOutlined style={{ color: '#94a3b8' }} />}
+              placeholder="Ví dụ: thangbui, hr, techlead..."
               size="large"
             />
           </Form.Item>
 
           <Form.Item
-            label="Mật khẩu"
+            label={<Text strong style={{ fontSize: 13, color: '#334155' }}>Mật khẩu</Text>}
             name="password"
             rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}
           >
-            <Input.Password 
-              prefix={<LockOutlined style={{ color: 'rgba(0,0,0,.25)' }} />} 
-              placeholder="Nhập mật khẩu" 
+            <Input.Password
+              prefix={<LockOutlined style={{ color: '#94a3b8' }} />}
+              placeholder="Nhập mật khẩu truy cập"
               size="large"
             />
           </Form.Item>
 
-          <Form.Item style={{ marginTop: 24, marginBottom: 0 }}>
-            <Button 
-              type="primary" 
-              htmlType="submit" 
-              block 
+          <Form.Item style={{ marginTop: 24, marginBottom: 16 }}>
+            <Button
+              type="primary"
+              htmlType="submit"
+              block
               size="large"
               loading={loading}
+              style={{ fontWeight: 600, height: 42 }}
             >
               Đăng nhập
             </Button>
           </Form.Item>
         </Form>
+
       </Card>
+
+      {/* Footer bản quyền nội bộ */}
+      <Text type="secondary" style={{ marginTop: 24, fontSize: 12, color: '#94a3b8' }}>
+        ECM - Employee CV Management &copy; 2026. All rights reserved.
+      </Text>
     </div>
   );
 };

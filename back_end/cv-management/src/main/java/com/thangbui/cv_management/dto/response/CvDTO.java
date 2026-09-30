@@ -49,6 +49,9 @@ public class CvDTO {
     //    → Jackson chỉ thấy Long + String → serialize bình thường, không vòng lặp
     private Long userId;        // ← chỉ là số, không có gì lồng trong đó
     private String userFullName; // ← chỉ là chuỗi, không có gì lồng trong đó
+    private String email;        // ← email của user
+    private Long departmentId;   // ← ID phòng ban của user
+    private String departmentName; // ← tên phòng ban của user
 
     // Phiên bản CV hiện tại (bắt đầu từ 1, tăng mỗi khi HR duyệt chót một bản nháp - UC19)
     private Integer version;

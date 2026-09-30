@@ -28,6 +28,7 @@ public class CvApprovalLogDTO {
      * ID của Bản Nháp CV được duyệt (draft_id trong bảng cv_approval_logs).
      */
     private Long draftId;
+    private String draftUserFullName;
 
     /**
      * Thông tin người duyệt (Tech Lead ở Trạm 1 hoặc HR ở Trạm 2).
@@ -55,6 +56,9 @@ public class CvApprovalLogDTO {
     public CvApprovalLogDTO(CvApprovalLog log) {
         this.id = log.getId();
         this.draftId = log.getDraft() != null ? log.getDraft().getId() : null;
+        if (log.getDraft() != null && log.getDraft().getUser() != null) {
+            this.draftUserFullName = log.getDraft().getUser().getFullName();
+        }
         if (log.getApprover() != null) {
             this.approverId = log.getApprover().getId();
             this.approverName = log.getApprover().getFullName();

@@ -20,6 +20,16 @@ const techLeadApi = {
   rejectDraft: (id, rejectionNote) => {
     return axiosClient.post(`/tech-lead/drafts/${id}/reject`, { rejectionNote });
   },
+
+  // Lấy danh sách CV chính thức đang hoạt động của nhân viên trong phòng ban (phục vụ Diff / So sánh)
+  getActiveCvs: () => {
+    return axiosClient.get('/tech-lead/drafts/active-cvs');
+  },
+
+  // Lấy lịch sử các bản nháp đã được Tech Lead xử lý (duyệt/từ chối)
+  getProcessedDrafts: () => {
+    return axiosClient.get('/tech-lead/drafts/processed');
+  },
 };
 
 export default techLeadApi;

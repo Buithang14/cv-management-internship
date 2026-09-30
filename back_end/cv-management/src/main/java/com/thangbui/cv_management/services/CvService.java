@@ -8,17 +8,20 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.thangbui.cv_management.dto.response.CvDTO;
 import com.thangbui.cv_management.entity.Cv;
+import com.thangbui.cv_management.entity.User;
 import com.thangbui.cv_management.enums.CvStatus;
 import com.thangbui.cv_management.exception.AppException;
 import com.thangbui.cv_management.repositorys.CvRepository;
+import com.thangbui.cv_management.repositorys.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor // Lombok, tạo contructor cho các thuộc tính final
 public class CvService {
-    // tiêm cvRepository vào Service
+    // tiêm repository vào Service
     private final CvRepository cvRepository;
+    private final UserRepository userRepository;
 
     // lấy cv đang hoạt động của user hiện tại
 
@@ -43,6 +46,21 @@ public class CvService {
         return cvList.stream().map(this::mapToDTO).toList();
     }
 
+    /**
+     * Tech Lead xem danh sách CV đang hoạt động của các nhân viên thuộc phòng ban mình (phục vụ Diff / So sánh)
+     */
+    @Transactional(readOnly = true)
+    public List<CvDTO> getAllActiveCvsForTechLead(Long techLeadUserId) {
+        User techLead = userRepository.findById(techLeadUserId)
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Không tìm thấy thông tin Tech Lead"));
+        if (techLead.getDepartment() == null) {
+            return List.of();
+        }
+        Long departmentId = techLead.getDepartment().getId();
+        List<Cv> cvList = cvRepository.findActiveCvsWithFilter(departmentId, null);
+        return cvList.stream().map(this::mapToDTO).toList();
+    }
+
     private CvDTO mapToDTO(Cv cv) {
         CvDTO dto = new CvDTO();
         dto.setId(cv.getId());
@@ -51,6 +69,11 @@ public class CvService {
         if (cv.getUser() != null) {
             dto.setUserId(cv.getUser().getId());
             dto.setUserFullName(cv.getUser().getFullName());
+            dto.setEmail(cv.getUser().getEmail());
+            if (cv.getUser().getDepartment() != null) {
+                dto.setDepartmentId(cv.getUser().getDepartment().getId());
+                dto.setDepartmentName(cv.getUser().getDepartment().getName());
+            }
         }
         dto.setVersion(cv.getVersion());
         dto.setOverallStatus(cv.getOverallStatus());

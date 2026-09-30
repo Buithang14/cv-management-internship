@@ -1,4 +1,4 @@
-﻿import axiosClient from './axiosClient';
+import axiosClient from './axiosClient';
 
 /**
  * Service API dành cho HR (Nghiệp vụ Nhân sự & Duyệt CV Trạm 2)
@@ -42,6 +42,11 @@ const hrApi = {
   // Lấy tất cả yêu cầu cập nhật CV
   getAllUpdateRequests: () => {
     return axiosClient.get('/hr/requests');
+  },
+
+  // Lấy lịch sử các bản nháp đã được HR xử lý (duyệt chót/từ chối)
+  getProcessedDrafts: () => {
+    return axiosClient.get('/hr/drafts/processed');
   },
 };
 

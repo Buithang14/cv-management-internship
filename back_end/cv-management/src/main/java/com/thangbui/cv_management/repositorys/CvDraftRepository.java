@@ -14,6 +14,12 @@ import java.util.List;
 public interface CvDraftRepository extends JpaRepository<CvDraft, Long> {
     public Optional<CvDraft> findByUserIdAndStatus(Long userId, DraftStatus status);
 
+    public Optional<CvDraft> findFirstByUserIdAndStatusInOrderByUpdatedAtDesc(Long userId, List<DraftStatus> statuses);
+
+    public Optional<CvDraft> findFirstByUserIdOrderByUpdatedAtDesc(Long userId);
+
+    public boolean existsByUserIdAndStatusIn(Long userId, List<DraftStatus> statuses);
+
     public List<CvDraft> findByStatusAndUserDepartmentId(DraftStatus status, Long departmentId);
 
     public List<CvDraft> findByStatus(DraftStatus status);

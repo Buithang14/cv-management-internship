@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Table,
   Card,
@@ -7,10 +8,8 @@ import {
   Button,
   Space,
   Modal,
-  Form,
   Input,
   Select,
-  DatePicker,
   message,
   Divider,
   Row,
@@ -24,15 +23,16 @@ import {
   CheckCircleOutlined,
   ExclamationCircleOutlined,
   CloseCircleOutlined,
-  FilterOutlined,
   SearchOutlined,
   ReloadOutlined,
   FileDoneOutlined,
   CheckOutlined,
   AlertOutlined,
+  CodeOutlined,
 } from '@ant-design/icons';
 import hrApi from '../../api/hrApi';
 import adminApi from '../../api/adminApi';
+import { parseJsonField } from '../../utils/jsonUtils';
 
 // Sub-components CV 2 cột
 import CvHeader from '../../components/cv/CvHeader';
@@ -46,6 +46,7 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 
 const HrCvListPage = () => {
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [cvList, setCvList] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -54,11 +55,7 @@ const HrCvListPage = () => {
   const [selectedDepartment, setSelectedDepartment] = useState(null);
   const [statusFilter, setStatusFilter] = useState(null);
   const [searchKeyword, setSearchKeyword] = useState('');
-
-  // Modal Request Creation
-  const [requestModalOpen, setRequestModalOpen] = useState(false);
-  const [requestSubmitting, setRequestSubmitting] = useState(false);
-  const [form] = Form.useForm();
+  const [skillKeyword, setSkillKeyword] = useState('');
 
   // Modal Preview CV
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
@@ -70,7 +67,6 @@ const HrCvListPage = () => {
       const list = res.data || res.result || res || [];
       setDepartments(Array.isArray(list) ? list : []);
     } catch {
-      // HR might not have permission or departments empty, fallback silently
       setDepartments([]);
     }
   };
@@ -93,21 +89,53 @@ const HrCvListPage = () => {
     fetchDepartments();
   }, []);
 
+  // Tự động chọn phòng ban nếu được chuyển từ trang Dashboard
+  useEffect(() => {
+    if (location.state?.departmentName && departments.length > 0) {
+      const found = departments.find((d) => d.name === location.state.departmentName);
+      if (found) {
+        setSelectedDepartment(found.id);
+      }
+    }
+  }, [departments, location.state]);
+
   useEffect(() => {
     fetchAllCvs();
   }, [selectedDepartment, statusFilter]);
 
+  // Bộ lọc kết hợp: Tên/SĐT/ID + Kỹ năng chuyên môn
   const filteredCvs = useMemo(() => {
-    if (!searchKeyword.trim()) return cvList;
-    const lower = searchKeyword.toLowerCase().trim();
-    return cvList.filter((cv) => {
-      const name = (cv.fullName || cv.userFullName || '').toLowerCase();
-      const phone = (cv.phone || '').toLowerCase();
-      const idStr = String(cv.id || '');
-      const summary = (cv.summary || cv.objective || '').toLowerCase();
-      return name.includes(lower) || phone.includes(lower) || idStr.includes(lower) || summary.includes(lower);
-    });
-  }, [cvList, searchKeyword]);
+    let result = cvList;
+
+    // 1. Lọc theo từ khóa thông thường
+    if (searchKeyword.trim()) {
+      const lower = searchKeyword.toLowerCase().trim();
+      result = result.filter((cv) => {
+        const name = (cv.fullName || cv.userFullName || '').toLowerCase();
+        const phone = (cv.phone || '').toLowerCase();
+        const email = (cv.email || '').toLowerCase();
+        const dept = (cv.departmentName || '').toLowerCase();
+        const idStr = String(cv.id || '');
+        const summary = (cv.summary || cv.objective || '').toLowerCase();
+        return name.includes(lower) || phone.includes(lower) || email.includes(lower) || dept.includes(lower) || idStr.includes(lower) || summary.includes(lower);
+      });
+    }
+
+    // 2. Lọc theo kỹ năng chuyên môn (Skill Search)
+    if (skillKeyword.trim()) {
+      const lowerSkill = skillKeyword.toLowerCase().trim();
+      result = result.filter((cv) => {
+        const skills = parseJsonField(cv.skillsJson);
+        const skillString = skills
+          .map((s) => (typeof s === 'object' && s !== null ? s.name || s.skill || '' : String(s)))
+          .join(' ')
+          .toLowerCase();
+        return skillString.includes(lowerSkill);
+      });
+    }
+
+    return result;
+  }, [cvList, searchKeyword, skillKeyword]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -123,42 +151,14 @@ const HrCvListPage = () => {
     setPreviewModalOpen(true);
   };
 
-  const handleCreateRequest = async (values) => {
-    setRequestSubmitting(true);
-    try {
-      const payload = {
-        batchName: values.batchName,
-        deadline: values.deadline ? values.deadline.format('YYYY-MM-DDTHH:mm:ss') : null,
-        targetUserIds: values.targetUserIds
-          ? values.targetUserIds
-              .split(',')
-              .map((id) => parseInt(id.trim(), 10))
-              .filter((n) => !isNaN(n))
-          : [],
-      };
-
-      await hrApi.createUpdateRequests(payload);
-      message.success('Đã phát lệnh yêu cầu cập nhật CV tới nhân viên thành công!');
-      setRequestModalOpen(false);
-      form.resetFields();
-      fetchAllCvs();
-    } catch (error) {
-      console.error('Lỗi khi tạo yêu cầu cập nhật CV:', error);
-      const errMsg = error.response?.data?.message || 'Tạo yêu cầu cập nhật CV thất bại!';
-      message.error(errMsg);
-    } finally {
-      setRequestSubmitting(false);
-    }
-  };
-
   const renderOverallStatus = (status) => {
     switch (status) {
       case 'UPDATED':
-        return <Tag icon={<CheckCircleOutlined />} color="success">Đã Cập Nhật (Active)</Tag>;
+        return <Tag icon={<CheckCircleOutlined />} color="success">Đã Cập Nhật</Tag>;
       case 'NOT_UPDATED':
-        return <Tag icon={<ExclamationCircleOutlined />} color="error">Chưa Cập Nhật (Cần Sửa)</Tag>;
+        return <Tag icon={<ExclamationCircleOutlined />} color="error">Chưa Cập Nhật</Tag>;
       case 'REQUEST_CANCELED':
-        return <Tag icon={<CloseCircleOutlined />} color="default">Đã Hủy Yêu Cầu</Tag>;
+        return <Tag icon={<CloseCircleOutlined />} color="default">Đã Hủy</Tag>;
       default:
         return <Tag color="default">{status || 'Chưa cập nhật'}</Tag>;
     }
@@ -169,7 +169,7 @@ const HrCvListPage = () => {
       title: 'Mã CV',
       dataIndex: 'id',
       key: 'id',
-      width: 100,
+      width: 95,
       render: (id) => <Tag color="blue">#CV-{id}</Tag>,
     },
     {
@@ -178,13 +178,18 @@ const HrCvListPage = () => {
       key: 'fullName',
       render: (name, record) => (
         <div>
-          <Text strong style={{ color: '#1677ff', fontSize: 14 }}>
+          <Text strong style={{ color: '#0f172a', fontSize: 13.5 }}>
             {name || record.userFullName || 'Chưa cập nhật'}
           </Text>
-          <div style={{ fontSize: 12, color: '#8c8c8c' }}>
-            User ID: #{record.userId}
-            {record.phone && ` • SĐT: ${record.phone}`}
+          <div style={{ fontSize: 12, color: '#64748b' }}>
+            {record.email && <span>{record.email} • </span>}
+            {record.phone ? <span>SĐT: {record.phone}</span> : `User ID: #${record.userId}`}
           </div>
+          {record.departmentName && (
+            <div style={{ fontSize: 12, color: '#1677ff', fontWeight: 500, marginTop: 2 }}>
+              {record.departmentName}
+            </div>
+          )}
         </div>
       ),
     },
@@ -192,40 +197,59 @@ const HrCvListPage = () => {
       title: 'Phiên Bản',
       dataIndex: 'version',
       key: 'version',
-      width: 110,
+      width: 100,
+      align: 'center',
       render: (ver) => <Tag color="cyan">v{ver || 1}</Tag>,
     },
     {
       title: 'Trạng Thái CV',
       dataIndex: 'overallStatus',
       key: 'overallStatus',
-      width: 190,
+      width: 180,
       render: (status) => renderOverallStatus(status),
     },
     {
-      title: 'Tóm Tắt Vị Trí / Mục Tiêu',
-      dataIndex: 'summary',
-      key: 'summary',
-      ellipsis: true,
-      render: (summary, record) => (
-        <span title={summary || record.objective || ''}>
-          {summary || record.objective || <Text type="secondary">Chưa cập nhật</Text>}
-        </span>
-      ),
+      title: 'Kỹ Năng Nổi Bật (Skills)',
+      key: 'skills',
+      width: 220,
+      render: (_, record) => {
+        const skills = parseJsonField(record.skillsJson);
+        if (!skills || skills.length === 0) {
+          return <Text type="secondary" italic style={{ fontSize: 12 }}>Chưa cập nhật</Text>;
+        }
+        const topSkills = skills.slice(0, 3);
+        const remainingCount = skills.length - 3;
+        return (
+          <Space wrap size={[4, 4]}>
+            {topSkills.map((s, idx) => {
+              const skillName = typeof s === 'object' && s !== null ? s.name || s.skill || 'Skill' : String(s);
+              return (
+                <Tag key={idx} color="blue" style={{ fontSize: 11, padding: '1px 6px', margin: 0 }}>
+                  {skillName}
+                </Tag>
+              );
+            })}
+            {remainingCount > 0 && (
+              <Tag style={{ fontSize: 11, padding: '1px 6px', margin: 0 }}>+{remainingCount}</Tag>
+            )}
+          </Space>
+        );
+      },
     },
     {
       title: 'Ngày Cập Nhật',
       dataIndex: 'updatedAt',
       key: 'updatedAt',
-      width: 150,
+      width: 130,
       render: (date) => (date ? new Date(date).toLocaleDateString('vi-VN') : 'N/A'),
     },
     {
-      title: 'Hành Động',
+      title: 'Thao Tác',
       key: 'actions',
-      width: 120,
+      width: 110,
+      align: 'center',
       render: (_, record) => (
-        <Button size="small" icon={<EyeOutlined />} onClick={() => handleOpenPreview(record)}>
+        <Button size="small" icon={<EyeOutlined />} onClick={() => handleOpenPreview(record)} style={{ borderRadius: 4 }}>
           Xem CV
         </Button>
       ),
@@ -234,39 +258,32 @@ const HrCvListPage = () => {
 
   return (
     <div>
-      {/* HEADER & ACTION */}
+      {/* ─── Header & Primary Action ─── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16, marginBottom: 20 }}>
         <div>
-          <Title level={4} style={{ margin: 0, fontWeight: 600 }}>
-            Danh Sách CV Toàn Công Ty
+          <Title level={4} style={{ margin: 0, fontWeight: 700, color: '#0f172a' }}>
+            Kho Hồ Sơ CV Toàn Doanh Nghiệp
           </Title>
           <Text type="secondary" style={{ fontSize: 13 }}>
-            Quản lý hồ sơ CV chính thức đang hoạt động và phát động các đợt cập nhật định kỳ.
+            Quản lý cơ sở dữ liệu hồ sơ năng lực chính thức và phát động các đợt cập nhật định kỳ.
           </Text>
         </div>
 
         <Space>
-          <Button icon={<ReloadOutlined />} onClick={fetchAllCvs} loading={loading}>
+          <Button icon={<ReloadOutlined />} onClick={fetchAllCvs} loading={loading} style={{ borderRadius: 6 }}>
             Làm mới
-          </Button>
-          <Button
-            type="primary"
-            icon={<SendOutlined />}
-            onClick={() => setRequestModalOpen(true)}
-          >
-            Phát Lệnh Cập Nhật CV
           </Button>
         </Space>
       </div>
 
-      {/* STATISTIC SUMMARY CARDS */}
+      {/* ─── Statistic Summary Cards ─── */}
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={12} sm={6}>
           <Card bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }} bodyStyle={{ padding: 16 }}>
             <Statistic
               title={<span style={{ fontSize: 12, color: '#8c8c8c' }}>Tổng CV Hoạt Động</span>}
               value={stats.total}
-              valueStyle={{ fontSize: 22, fontWeight: 600, color: '#1677ff' }}
+              valueStyle={{ fontSize: 22, fontWeight: 700, color: '#1677ff' }}
               prefix={<FileDoneOutlined style={{ fontSize: 18, marginRight: 6 }} />}
             />
           </Card>
@@ -274,9 +291,9 @@ const HrCvListPage = () => {
         <Col xs={12} sm={6}>
           <Card bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }} bodyStyle={{ padding: 16 }}>
             <Statistic
-              title={<span style={{ fontSize: 12, color: '#8c8c8c' }}>Đã Cập Nhật (Active)</span>}
+              title={<span style={{ fontSize: 12, color: '#8c8c8c' }}>Đã Cập Nhật</span>}
               value={stats.updated}
-              valueStyle={{ fontSize: 22, fontWeight: 600, color: '#16a34a' }}
+              valueStyle={{ fontSize: 22, fontWeight: 700, color: '#16a34a' }}
               prefix={<CheckOutlined style={{ fontSize: 18, marginRight: 6 }} />}
             />
           </Card>
@@ -284,9 +301,9 @@ const HrCvListPage = () => {
         <Col xs={12} sm={6}>
           <Card bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }} bodyStyle={{ padding: 16 }}>
             <Statistic
-              title={<span style={{ fontSize: 12, color: '#8c8c8c' }}>Chưa Cập Nhật (Cần Sửa)</span>}
+              title={<span style={{ fontSize: 12, color: '#8c8c8c' }}>Chưa Cập Nhật</span>}
               value={stats.notUpdated}
-              valueStyle={{ fontSize: 22, fontWeight: 600, color: '#fa8c16' }}
+              valueStyle={{ fontSize: 22, fontWeight: 700, color: '#fa8c16' }}
               prefix={<AlertOutlined style={{ fontSize: 18, marginRight: 6 }} />}
             />
           </Card>
@@ -294,23 +311,23 @@ const HrCvListPage = () => {
         <Col xs={12} sm={6}>
           <Card bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }} bodyStyle={{ padding: 16 }}>
             <Statistic
-              title={<span style={{ fontSize: 12, color: '#8c8c8c' }}>Yêu Cầu Đã Hủy</span>}
+              title={<span style={{ fontSize: 12, color: '#8c8c8c' }}>Đã Hủy</span>}
               value={stats.canceled}
-              valueStyle={{ fontSize: 22, fontWeight: 600, color: '#8c8c8c' }}
+              valueStyle={{ fontSize: 22, fontWeight: 700, color: '#8c8c8c' }}
               prefix={<CloseCircleOutlined style={{ fontSize: 18, marginRight: 6 }} />}
             />
           </Card>
         </Col>
       </Row>
 
-      {/* FILTER BAR */}
+      {/* ─── Bộ Lọc Nâng Cao (Search + Skill Filter + Status + Dept) ─── */}
       <Card
         bordered={false}
         style={{ marginBottom: 16, borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
         bodyStyle={{ padding: '12px 16px' }}
       >
         <Row gutter={[16, 12]} align="middle" justify="space-between">
-          <Col xs={24} md={16}>
+          <Col xs={24} lg={18}>
             <Space wrap size="middle">
               <Input
                 prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
@@ -318,20 +335,29 @@ const HrCvListPage = () => {
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 allowClear
-                style={{ width: 220 }}
+                style={{ width: 200, borderRadius: 6 }}
+              />
+
+              <Input
+                prefix={<CodeOutlined style={{ color: '#1677ff' }} />}
+                placeholder="Lọc kỹ năng (React, Java...)"
+                value={skillKeyword}
+                onChange={(e) => setSkillKeyword(e.target.value)}
+                allowClear
+                style={{ width: 200, borderRadius: 6 }}
               />
 
               {departments.length > 0 && (
                 <Select
                   placeholder="Lọc theo phòng ban"
-                  style={{ width: 200 }}
+                  style={{ width: 190 }}
                   allowClear
                   value={selectedDepartment}
                   onChange={(val) => setSelectedDepartment(val)}
                 >
                   {departments.map((dept) => (
                     <Option key={dept.id} value={dept.id}>
-                      {dept.name} ({dept.code})
+                      {dept.name}
                     </Option>
                   ))}
                 </Select>
@@ -339,7 +365,7 @@ const HrCvListPage = () => {
 
               <Select
                 placeholder="Lọc theo trạng thái"
-                style={{ width: 200 }}
+                style={{ width: 180 }}
                 allowClear
                 value={statusFilter}
                 onChange={(val) => setStatusFilter(val)}
@@ -351,15 +377,15 @@ const HrCvListPage = () => {
             </Space>
           </Col>
 
-          <Col xs={24} md={8} style={{ textAlign: 'right' }}>
-            <Text type="secondary" style={{ fontSize: 12 }}>
+          <Col xs={24} lg={6} style={{ textAlign: 'right' }}>
+            <Text type="secondary" style={{ fontSize: 12.5 }}>
               Hiển thị: <strong>{filteredCvs.length}</strong> / {cvList.length} hồ sơ CV
             </Text>
           </Col>
         </Row>
       </Card>
 
-      {/* BẢNG DỮ LIỆU CV MASTER */}
+      {/* ─── Bảng Dữ Liệu CV Master ─── */}
       <Card
         bordered={false}
         style={{ borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
@@ -381,7 +407,7 @@ const HrCvListPage = () => {
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
                 description={
-                  searchKeyword || selectedDepartment || statusFilter
+                  searchKeyword || skillKeyword || selectedDepartment || statusFilter
                     ? 'Không tìm thấy hồ sơ CV nào phù hợp với bộ lọc.'
                     : 'Chưa có dữ liệu CV nào trong hệ thống.'
                 }
@@ -391,56 +417,7 @@ const HrCvListPage = () => {
         />
       </Card>
 
-      {/* MODAL PHÁT LỆNH CẬP NHẬT CV */}
-      <Modal
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <SendOutlined style={{ color: '#1677ff' }} />
-            <span>Phát Lệnh Yêu Cầu Cập Nhật CV (HR Request)</span>
-          </div>
-        }
-        open={requestModalOpen}
-        onCancel={() => setRequestModalOpen(false)}
-        footer={null}
-        width={560}
-      >
-        <Form form={form} layout="vertical" onFinish={handleCreateRequest} style={{ marginTop: 16 }}>
-          <Form.Item
-            label="Tên Đợt Thu Thập / Lý Do Yêu Cầu"
-            name="batchName"
-            rules={[{ required: true, message: 'Vui lòng nhập tên đợt thu thập!' }]}
-          >
-            <Input placeholder="Ví dụ: Rà soát CV Q3/2026 cho dự án mới..." />
-          </Form.Item>
-
-          <Form.Item
-            label="Hạn Chót Nộp Bài (Deadline)"
-            name="deadline"
-            rules={[{ required: true, message: 'Vui lòng chọn hạn chót!' }]}
-          >
-            <DatePicker showTime format="YYYY-MM-DD HH:mm:ss" style={{ width: '100%' }} placeholder="Chọn ngày và giờ hết hạn" />
-          </Form.Item>
-
-          <Form.Item
-            label="ID Các Nhân Viên Nhận Yêu Cầu (Phân cách bằng dấu phẩy)"
-            name="targetUserIds"
-            help="Để trống để phát lệnh cho TẤT CẢ nhân viên, hoặc nhập ID cụ thể (ví dụ: 4, 5, 8)."
-          >
-            <Input placeholder="Ví dụ: 4, 5 hoặc để trống cho toàn bộ nhân viên" />
-          </Form.Item>
-
-          <div style={{ textAlign: 'right', marginTop: 24 }}>
-            <Space>
-              <Button onClick={() => setRequestModalOpen(false)}>Hủy</Button>
-              <Button type="primary" htmlType="submit" icon={<SendOutlined />} loading={requestSubmitting}>
-                Phát Lệnh Yêu Cầu
-              </Button>
-            </Space>
-          </div>
-        </Form>
-      </Modal>
-
-      {/* MODAL XEM CHI TIẾT CV PREVIEW */}
+      {/* ─── Modal Xem Chi Tiết CV Preview ─── */}
       <Modal
         title={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -464,7 +441,7 @@ const HrCvListPage = () => {
             <CvHeader
               fullName={selectedCv.fullName || selectedCv.userFullName}
               avatarUrl={selectedCv.avatarUrl}
-              title={`Phiên bản CV v${selectedCv.version || 1} — Đang Hoạt Động`}
+              title={selectedCv.departmentName ? `${selectedCv.departmentName} • Phiên bản v${selectedCv.version || 1}` : `Phiên bản CV v${selectedCv.version || 1} — Đang Hoạt Động`}
               summary={selectedCv.summary}
               objective={selectedCv.objective}
             />
@@ -473,14 +450,15 @@ const HrCvListPage = () => {
 
             <Row gutter={32}>
               <Col span={15}>
+                <ObjectiveSection objective={selectedCv.objective} summary={selectedCv.summary} />
                 <EducationSection educationsJson={selectedCv.educationsJson} />
                 <ExperienceSection experiencesJson={selectedCv.experiencesJson} />
-                <ObjectiveSection objective={selectedCv.objective} summary={selectedCv.summary} />
               </Col>
 
               <Col span={9} style={{ borderLeft: '1px solid #f0f0f0', paddingLeft: 24 }}>
                 <PersonalInfoSection
                   phone={selectedCv.phone}
+                  email={selectedCv.email}
                 />
                 <SkillsSection skillsJson={selectedCv.skillsJson} />
               </Col>

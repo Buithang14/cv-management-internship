@@ -62,6 +62,30 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Bắt lỗi AccessDeniedException từ Spring Security (@PreAuthorize).
+     * Trả về 403 Forbidden thay vì rơi vào 500 lỗi hệ thống.
+     */
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAccessDeniedException(org.springframework.security.access.AccessDeniedException ex) {
+        return new ResponseEntity<>(
+                ApiResponse.error("Bạn không có quyền thực hiện thao tác này"),
+                HttpStatus.FORBIDDEN
+        );
+    }
+
+    /**
+     * Bắt lỗi AuthenticationException từ Spring Security khi xác thực không thành công.
+     * Trả về 401 Unauthorized.
+     */
+    @ExceptionHandler(org.springframework.security.core.AuthenticationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAuthenticationException(org.springframework.security.core.AuthenticationException ex) {
+        return new ResponseEntity<>(
+                ApiResponse.error("Yêu cầu xác thực tài khoản: " + ex.getMessage()),
+                HttpStatus.UNAUTHORIZED
+        );
+    }
+
+    /**
      * Bắt tất cả lỗi không mong muốn còn lại (lỗi hệ thống).
      * Ví dụ: NullPointerException, DB connection failed...
      * → Response: 500 + { success: false, message: "Lỗi hệ thống: ...", data: null }

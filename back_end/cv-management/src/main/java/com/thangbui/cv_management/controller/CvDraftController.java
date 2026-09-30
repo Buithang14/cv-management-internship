@@ -1,6 +1,7 @@
 package com.thangbui.cv_management.controller;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,6 +33,7 @@ public class CvDraftController {
      * Endpoint: POST /api/v1/cv-drafts/init
      */
     @PostMapping("/init")
+    @PreAuthorize("hasRole('EMPLOYEE')")
     public ResponseEntity<ApiResponse<CvDraftDTO>> initDraft(@AuthenticationPrincipal CustomUserDetails userDetails) {
         Long userId = userDetails.getId();
         CvDraftDTO cvDraftDTO = cvDraftService.initDraft(userId);
@@ -43,6 +45,7 @@ public class CvDraftController {
      * Endpoint: PUT /api/v1/cv-drafts/{id}
      */
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('EMPLOYEE')")
     public ResponseEntity<ApiResponse<CvDraftDTO>> updateDraft(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable("id") Long id,
@@ -57,6 +60,7 @@ public class CvDraftController {
      * Endpoint: POST /api/v1/cv-drafts/{id}/submit
      */
     @PostMapping("/{id}/submit")
+    @PreAuthorize("hasRole('EMPLOYEE')")
     public ResponseEntity<ApiResponse<CvDraftDTO>> submitDraft(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable("id") Long id) {
@@ -66,10 +70,24 @@ public class CvDraftController {
     }
 
     /**
+     * Xem lịch sử phê duyệt của bản nháp mới nhất của nhân viên hiện tại
+     * Endpoint: GET /api/v1/cv-drafts/my-logs
+     */
+    @GetMapping("/my-logs")
+    @PreAuthorize("hasRole('EMPLOYEE')")
+    public ResponseEntity<ApiResponse<List<CvApprovalLogDTO>>> getMyDraftApprovalLogs(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long currentUserId = userDetails.getId();
+        List<CvApprovalLogDTO> logs = cvDraftService.getMyDraftApprovalLogs(currentUserId);
+        return ResponseEntity.ok(ApiResponse.success("Lấy lịch sử phê duyệt thành công", logs));
+    }
+
+    /**
      * UC16: Xem lịch sử phê duyệt của một bản nháp CV (Audit Logs)
      * Endpoint: GET /api/v1/cv-drafts/{id}/logs
      */
     @GetMapping("/{id}/logs")
+    @PreAuthorize("hasAnyRole('EMPLOYEE', 'TECH_LEAD', 'HR', 'ADMIN')")
     public ResponseEntity<ApiResponse<List<CvApprovalLogDTO>>> getDraftApprovalLogs(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable("id") Long id) {

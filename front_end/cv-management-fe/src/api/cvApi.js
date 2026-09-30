@@ -30,6 +30,11 @@ const cvApi = {
     return axiosClient.get(`/cv-drafts/${id}/logs`);
   },
 
+  // Xem lịch sử phê duyệt bản nháp cá nhân hiện tại (GET /api/v1/cv-drafts/my-logs)
+  getMyDraftLogs: () => {
+    return axiosClient.get('/cv-drafts/my-logs');
+  },
+
     // Upload ảnh đại diện Avatar lên server (POST /api/v1/files/upload)
   uploadAvatar: (formData) => {
     return axiosClient.post('/files/upload', formData, {

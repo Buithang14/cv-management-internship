@@ -15,9 +15,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.thangbui.cv_management.dto.ApiResponse;
 import com.thangbui.cv_management.dto.request.RejectDraftRequest;
+import com.thangbui.cv_management.dto.response.CvApprovalLogDTO;
+import com.thangbui.cv_management.dto.response.CvDTO;
 import com.thangbui.cv_management.dto.response.CvDraftDTO;
 import com.thangbui.cv_management.security.CustomUserDetails;
 import com.thangbui.cv_management.services.CvDraftService;
+import com.thangbui.cv_management.services.CvService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,9 +28,10 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/v1/tech-lead/drafts")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('TECH_LEAD','ADMIN')") // CHỈ TECH VÀ ADMIN MỚI ĐƯỢC VÀO
+@PreAuthorize("hasRole('TECH_LEAD')") // 🔒 Chỉ có TECH_LEAD mới được duyệt chuyên môn kỹ thuật Trạm 1
 public class TechLeadCvController {
     private final CvDraftService cvDraftService;
+    private final CvService cvService;
 
     /**
      * UC08: Xem danh sách bản nháp CV đang chờ duyệt trong phòng ban của mình
@@ -38,6 +42,17 @@ public class TechLeadCvController {
         Long techLeadId = userDetails.getId();
         List<CvDraftDTO> listcvDraftDTO = cvDraftService.getPendingDraftsForTechLead(techLeadId);
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách bản nháp chờ duyệt thành công", listcvDraftDTO));
+    }
+
+    /**
+     * Lấy danh sách CV chính thức đang hoạt động của nhân viên trong phòng ban (phục vụ Diff / So sánh)
+     * Endpoint: GET /api/v1/tech-lead/drafts/active-cvs
+     */
+    @GetMapping("/active-cvs")
+    public ResponseEntity<ApiResponse<List<CvDTO>>> getActiveCvsForTechLead(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long techLeadId = userDetails.getId();
+        List<CvDTO> listCvDTO = cvService.getAllActiveCvsForTechLead(techLeadId);
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách CV hoạt động thành công", listCvDTO));
     }
 
     /**
@@ -66,6 +81,18 @@ public class TechLeadCvController {
         Long techLeadId = userDetails.getId();
         CvDraftDTO cvDraftDTO = cvDraftService.rejectDraftByTechLead(techLeadId, id, request);
         return ResponseEntity.ok(ApiResponse.success("Từ chối bản nháp thành công", cvDraftDTO));
+    }
+
+    /**
+     * Lấy lịch sử các bản nháp đã được Tech Lead xử lý (duyệt/từ chối) trong phòng ban
+     * Endpoint: GET /api/v1/tech-lead/drafts/processed
+     */
+    @GetMapping("/processed")
+    public ResponseEntity<ApiResponse<List<CvApprovalLogDTO>>> getProcessedDrafts(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long techLeadId = userDetails.getId();
+        List<CvApprovalLogDTO> logs = cvDraftService.getProcessedDraftsByTechLead(techLeadId);
+        return ResponseEntity.ok(ApiResponse.success("Lấy lịch sử xử lý thành công", logs));
     }
 
 }

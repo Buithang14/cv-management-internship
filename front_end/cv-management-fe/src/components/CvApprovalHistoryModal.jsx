@@ -46,25 +46,25 @@ const CvApprovalHistoryModal = ({ open, onCancel, draftId, title = 'Lịch Sử 
         return {
           color: 'green',
           icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
-          label: 'Tech Lead Đã Duyệt (Trạm 1)',
+          label: 'Tech Lead Phê Duyệt',
         };
       case 'REJECTED_BY_TECH':
         return {
           color: 'red',
           icon: <CloseCircleOutlined style={{ color: '#ff4d4f' }} />,
-          label: 'Tech Lead Từ Chối (Trạm 1)',
+          label: 'Tech Lead Từ Chối',
         };
       case 'APPROVED_BY_HR':
         return {
           color: 'blue',
           icon: <CheckCircleOutlined style={{ color: '#1677ff' }} />,
-          label: 'HR Đã Duyệt Chót (Trạm 2)',
+          label: 'HR Phê Duyệt & Ban Hành',
         };
       case 'REJECTED_BY_HR':
         return {
           color: 'red',
           icon: <CloseCircleOutlined style={{ color: '#ff4d4f' }} />,
-          label: 'HR Từ Chối (Trạm 2)',
+          label: 'HR Từ Chối',
         };
       default:
         return {

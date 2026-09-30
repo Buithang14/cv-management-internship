@@ -39,6 +39,7 @@ public class CvDraftService {
     private final UserRepository userRepository;
     private final CvApprovalLogRepository cvApprovalLogRepository;
     private final CvUpdateRequestRepository cvUpdateRequestRepository;
+    private final NotificationService notificationService;
 
     // khởi tạo hoặc lấy bản nháp CV để soạn thảo
     @Transactional
@@ -153,8 +154,23 @@ public class CvDraftService {
         }
         // 5. lưu xuống db và trả về DTO
         CvDraft savedDraft = cvDraftRepository.save(draft);
-        return mapToDTO(savedDraft);
 
+        // UC21: Tự động gửi thông báo xác nhận cho nhân viên
+        if (draft.getStatus() == DraftStatus.PENDING_HR) {
+            notificationService.createNotification(
+                    draft.getUser(),
+                    "Nộp lại bản nháp CV lên HR thành công",
+                    "Bạn đã nộp lại bản nháp CV trực tiếp lên HR (Smart Routing) sau khi hoàn thiện theo góp ý."
+            );
+        } else {
+            notificationService.createNotification(
+                    draft.getUser(),
+                    "Nộp bản nháp CV thành công",
+                    "Bạn đã nộp bản nháp CV lên Tech Lead phê duyệt. Vui lòng theo dõi trạng thái hồ sơ."
+            );
+        }
+
+        return mapToDTO(savedDraft);
     }
 
     private CvDraftDTO mapToDTO(CvDraft draft) {
@@ -251,6 +267,14 @@ public class CvDraftService {
         log.setAction(ApprovalAction.APPROVED_BY_TECH);
         log.setComment(comment);
         cvApprovalLogRepository.save(log);
+
+        // UC21: Tự động gửi thông báo cho nhân viên
+        notificationService.createNotification(
+                draft.getUser(),
+                "Bản nháp CV được duyệt Trạm 1",
+                "Tech Lead (" + techLead.getFullName() + ") đã duyệt bản nháp CV của bạn. Hồ sơ đã được chuyển tiếp tới phòng Nhân Sự (HR) để phê duyệt chót."
+        );
+
         // 6. Trả về DTO
         return mapToDTO(savedDraft);
 
@@ -290,6 +314,15 @@ public class CvDraftService {
         log.setAction(ApprovalAction.REJECTED_BY_TECH);
         log.setComment(request.getRejectionNote());
         cvApprovalLogRepository.save(log);
+
+        // UC21: Tự động gửi thông báo cho nhân viên
+        String reason = (request != null && request.getRejectionNote() != null && !request.getRejectionNote().isBlank())
+                ? request.getRejectionNote() : "Không có lý do chi tiết";
+        notificationService.createNotification(
+                draft.getUser(),
+                "Bản nháp CV bị Tech Lead từ chối",
+                "Tech Lead (" + techLead.getFullName() + ") đã từ chối bản nháp CV của bạn. Lý do: " + reason
+        );
 
         return mapToDTO(savedDraft);
 
@@ -364,6 +397,13 @@ public class CvDraftService {
             cvUpdateRequestRepository.save(request);
         }
 
+        // UC21: Tự động gửi thông báo cho nhân viên khi CV được duyệt chính thức
+        notificationService.createNotification(
+                savedDraft.getUser(),
+                "🎉 Bản nháp CV được duyệt chính thức!",
+                "HR (" + hr.getFullName() + ") đã phê duyệt bản nháp CV của bạn. CV đã được nâng lên phiên bản mới (v" + newVersion + ") và có hiệu lực từ bây giờ."
+        );
+
         // BƯỚC 5: TRẢ VỀ DTO
         return mapToDTO(savedDraft);
 
@@ -398,6 +438,16 @@ public class CvDraftService {
         log.setAction(ApprovalAction.REJECTED_BY_HR);
         log.setComment(request.getRejectionNote());
         cvApprovalLogRepository.save(log);
+
+        // UC21: Tự động gửi thông báo cho nhân viên khi HR từ chối
+        String hrReason = (request.getRejectionNote() != null && !request.getRejectionNote().isBlank())
+                ? request.getRejectionNote() : "Không có lý do chi tiết";
+        notificationService.createNotification(
+                savedDraft.getUser(),
+                "Bản nháp CV bị HR từ chối",
+                "HR (" + hr.getFullName() + ") đã từ chối bản nháp CV của bạn. Lý do: " + hrReason + ". Vui lòng chỉnh sửa lại và nộp lại."
+        );
+
         return mapToDTO(savedDraft);
     }
 
@@ -436,6 +486,53 @@ public class CvDraftService {
 
         // 5. Trả về DTO (viết kiểu lambda rõ ràng, dễ hiểu!)
         return logs.stream().map(log -> new CvApprovalLogDTO(log)).toList();
+    }
+
+    /**
+     * Xem lịch sử duyệt của bản nháp mới nhất của nhân viên hiện tại
+     */
+    @Transactional(readOnly = true)
+    public List<CvApprovalLogDTO> getMyDraftApprovalLogs(Long currentUserId) {
+        // Tìm bản nháp mới nhất của nhân viên
+        Optional<CvDraft> latestDraft = cvDraftRepository.findFirstByUserIdOrderByUpdatedAtDesc(currentUserId);
+        if (latestDraft.isEmpty()) {
+            return List.of();
+        }
+        List<CvApprovalLog> logs = cvApprovalLogRepository.findByDraftIdOrderByCreatedAtAsc(latestDraft.get().getId());
+        return logs.stream().map(log -> new CvApprovalLogDTO(log)).toList();
+    }
+
+    /**
+     * Lấy lịch sử các bản nháp đã được Tech Lead xử lý (duyệt hoặc từ chối) trong phòng ban
+     */
+    @Transactional(readOnly = true)
+    public List<CvApprovalLogDTO> getProcessedDraftsByTechLead(Long techLeadUserId) {
+        User techLead = userRepository.findById(techLeadUserId)
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Không tìm thấy tài khoản Tech Lead"));
+
+        if (techLead.getDepartment() == null) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "Tech Lead chưa được gán vào phòng ban nào");
+        }
+
+        Long departmentId = techLead.getDepartment().getId();
+
+        List<CvApprovalLog> logs = cvApprovalLogRepository.findByActionsAndDepartmentId(
+                List.of(ApprovalAction.APPROVED_BY_TECH, ApprovalAction.REJECTED_BY_TECH),
+                departmentId
+        );
+
+        return logs.stream().map(CvApprovalLogDTO::new).toList();
+    }
+
+    /**
+     * Lấy lịch sử các bản nháp đã được HR xử lý (duyệt chót hoặc từ chối) toàn công ty
+     */
+    @Transactional(readOnly = true)
+    public List<CvApprovalLogDTO> getProcessedDraftsByHr() {
+        List<CvApprovalLog> logs = cvApprovalLogRepository.findByActions(
+                List.of(ApprovalAction.APPROVED_BY_HR, ApprovalAction.REJECTED_BY_HR)
+        );
+        return logs.stream().map(CvApprovalLogDTO::new).toList();
     }
 
 }

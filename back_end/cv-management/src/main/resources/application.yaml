@@ -20,6 +20,15 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MariaDBDialect
 
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 5MB
+      max-request-size: 5MB
+
+file:
+  upload-dir: uploads/avatars
+
 # JWT Configuration (đọc bảo mật từ .env)
 jwt:
   secret: ${JWT_SECRET}

@@ -9,8 +9,8 @@ const CvHeader = ({ fullName, avatarUrl, title, summary, objective, position }) 
     .replace(/\s*\(Employee\)/gi, '')
     .trim();
 
-  // Chức vụ (Position)
-  const jobPosition = position || summary || (objective && objective.length <= 60 ? objective : 'Technical Architect');
+  // Chức vụ (Position) - chỉ hiển thị nếu có truyền chức vụ thực tế
+  const jobPosition = position;
 
   return (
     <div style={{ display: 'flex', gap: 24, marginBottom: 18, alignItems: 'center' }}>
@@ -37,13 +37,15 @@ const CvHeader = ({ fullName, avatarUrl, title, summary, objective, position }) 
           </div>
         )}
 
-        {/* Dòng Chức vụ */}
-        <div style={{ fontSize: 14.5, color: '#334155', marginTop: 5, lineHeight: 1.4 }}>
-          <span style={{ fontWeight: 600, color: '#0f172a' }}>Chức vụ: </span>
-          <span style={{ fontWeight: 400, color: '#334155' }}>
-            {jobPosition}
-          </span>
-        </div>
+        {/* Dòng Chức vụ nếu có */}
+        {jobPosition && (
+          <div style={{ fontSize: 14.5, color: '#334155', marginTop: 5, lineHeight: 1.4 }}>
+            <span style={{ fontWeight: 600, color: '#0f172a' }}>Chức vụ: </span>
+            <span style={{ fontWeight: 400, color: '#334155' }}>
+              {jobPosition}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

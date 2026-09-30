@@ -4,7 +4,6 @@ import {
   Card,
   Row,
   Col,
-  Statistic,
   Spin,
   Alert,
   Progress,
@@ -16,30 +15,20 @@ import {
   Empty,
 } from 'antd';
 import {
-  TeamOutlined,
   CheckCircleOutlined,
-  CloseCircleOutlined,
   ClockCircleOutlined,
   ReloadOutlined,
-  BarChartOutlined,
   ApartmentOutlined,
   ArrowRightOutlined,
   ArrowLeftOutlined,
   SolutionOutlined,
   FileTextOutlined,
+  SendOutlined,
+  EyeOutlined,
 } from '@ant-design/icons';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts';
 import { getDashboardStats } from '../api/dashboardApi';
 import techLeadApi from '../api/techLeadApi';
+import hrApi from '../api/hrApi';
 
 const { Title, Text } = Typography;
 
@@ -52,6 +41,8 @@ const DashboardPage = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [pendingDrafts, setPendingDrafts] = useState([]);
+  const [hrPendingDrafts, setHrPendingDrafts] = useState([]);
+  const [recentRequests, setRecentRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -59,6 +50,9 @@ const DashboardPage = () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const userRole = user.role || 'EMPLOYEE';
   const isTechLead = userRole === 'TECH_LEAD';
+  const isHr = userRole === 'HR';
+  const isAdmin = userRole === 'ADMIN';
+  const canManageHr = isHr || isAdmin;
 
   // Phòng ban đang được chọn để xem chi tiết (đối với Tech Lead). Mặc định là null để chỉ hiển thị bảng phòng ban ban đầu.
   const [selectedDeptName, setSelectedDeptName] = useState(null);
@@ -83,6 +77,28 @@ const DashboardPage = () => {
           console.error('Lỗi khi tải bản nháp chờ duyệt của Tech Lead:', draftErr);
         }
       }
+
+      // 3. Nếu là HR hoặc ADMIN, tải danh sách bản nháp chờ duyệt và các đợt phát lệnh
+      if (canManageHr) {
+        try {
+          const [draftRes, reqRes] = await Promise.allSettled([
+            hrApi.getPendingDrafts(),
+            hrApi.getAllUpdateRequests(),
+          ]);
+
+          if (draftRes.status === 'fulfilled') {
+            const list = draftRes.value?.data || draftRes.value?.result || draftRes.value || [];
+            setHrPendingDrafts(Array.isArray(list) ? list : []);
+          }
+
+          if (reqRes.status === 'fulfilled') {
+            const list = reqRes.value?.data || reqRes.value?.result || reqRes.value || [];
+            setRecentRequests(Array.isArray(list) ? list : []);
+          }
+        } catch (hrErr) {
+          console.error('Lỗi khi tải dữ liệu bổ sung của HR:', hrErr);
+        }
+      }
     } catch (err) {
       setError('Không thể tải dữ liệu thống kê từ hệ thống. Vui lòng thử lại sau.');
       console.error('Dashboard error:', err);
@@ -93,7 +109,7 @@ const DashboardPage = () => {
 
   useEffect(() => {
     fetchStats();
-  }, [isTechLead]);
+  }, [isTechLead, canManageHr]);
 
   if (loading) {
     return (
@@ -298,7 +314,6 @@ const DashboardPage = () => {
     const deptTotal = (activeDept.updatedCount || 0) + (activeDept.notUpdatedCount || 0);
     const deptUpdated = activeDept.updatedCount || 0;
     const deptNotUpdated = activeDept.notUpdatedCount || 0;
-    const deptPercent = deptTotal > 0 ? Math.round((deptUpdated / deptTotal) * 100) : 0;
     const isUserMainDept = !user.departmentName || activeDept.departmentName === user.departmentName;
     const deptPending = isUserMainDept ? pendingDrafts.length : 0;
 
@@ -472,37 +487,52 @@ const DashboardPage = () => {
           </Space>
         </div>
 
-        {/* ─── Thanh Tóm Tắt Tình Trạng Phòng Ban (Thẻ Phẳng Gọn Gàng) ─── */}
-        <Card
-          bordered={false}
-          style={{ borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.04)', marginBottom: 20 }}
-          bodyStyle={{ padding: '16px 20px', background: '#f8fafc' }}
-        >
-          <Row gutter={[16, 16]} align="middle">
-            <Col xs={12} sm={6}>
-              <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>Tổng Nhân Sự</Text>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#0f172a' }}>{deptTotal} nhân viên</div>
-            </Col>
-            <Col xs={12} sm={6}>
-              <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>CV Đã Đạt Chuẩn</Text>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#0f172a' }}>
-                {deptUpdated} <span style={{ fontSize: 14, color: '#64748b', fontWeight: 500 }}>/ {deptTotal}</span>
+        {/* ─── Stat Cards Phòng Ban ─── */}
+        <Row gutter={[16, 12]} style={{ marginBottom: 20 }}>
+          {/* Card 1: Tổng Nhân Sự */}
+          <Col xs={12} sm={6}>
+            <div style={{ background: '#fff', borderRadius: 8, padding: '16px 20px', borderTop: '3px solid #1677ff', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+              <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 6 }}>Tổng Nhân Sự</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: '#1677ff', lineHeight: 1 }}>{deptTotal}</div>
+              <div style={{ fontSize: 12, color: '#bfbfbf', marginTop: 4 }}>nhân viên</div>
+            </div>
+          </Col>
+
+          {/* Card 2: CV Đã Cập Nhật */}
+          <Col xs={12} sm={6}>
+            <div style={{ background: '#fff', borderRadius: 8, padding: '16px 20px', borderTop: '3px solid #52c41a', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+              <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 6 }}>CV Đã Cập Nhật</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: '#52c41a', lineHeight: 1 }}>
+                {deptUpdated} <span style={{ fontSize: 14, fontWeight: 400, color: '#bfbfbf' }}>/ {deptTotal}</span>
               </div>
-            </Col>
-            <Col xs={12} sm={6}>
-              <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>CV Chưa Cập Nhật</Text>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#0f172a' }}>
-                {deptNotUpdated} <span style={{ fontSize: 14, color: '#64748b', fontWeight: 500 }}>/ {deptTotal}</span>
+              <div style={{ fontSize: 12, color: '#bfbfbf', marginTop: 4 }}>
+                {deptTotal > 0 ? Math.round((deptUpdated / deptTotal) * 100) : 0}% hoàn thành
               </div>
-            </Col>
-            <Col xs={12} sm={6}>
-              <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>Chờ Thẩm Định</Text>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#0f172a' }}>
-                {deptPending} <span style={{ fontSize: 14, color: '#64748b', fontWeight: 500 }}>/ {deptTotal}</span>
+            </div>
+          </Col>
+
+          {/* Card 3: CV Chưa Cập Nhật */}
+          <Col xs={12} sm={6}>
+            <div style={{ background: '#fff', borderRadius: 8, padding: '16px 20px', borderTop: '3px solid #fa8c16', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+              <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 6 }}>CV Chưa Cập Nhật</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: '#fa8c16', lineHeight: 1 }}>
+                {deptNotUpdated} <span style={{ fontSize: 14, fontWeight: 400, color: '#bfbfbf' }}>/ {deptTotal}</span>
               </div>
-            </Col>
-          </Row>
-        </Card>
+              <div style={{ fontSize: 12, color: '#bfbfbf', marginTop: 4 }}>cần cập nhật</div>
+            </div>
+          </Col>
+
+          {/* Card 4: Chờ Thẩm Định */}
+          <Col xs={12} sm={6}>
+            <div style={{ background: '#fff', borderRadius: 8, padding: '16px 20px', borderTop: '3px solid #722ed1', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+              <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 6 }}>Chờ Thẩm Định</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: '#722ed1', lineHeight: 1 }}>
+                {deptPending} <span style={{ fontSize: 14, fontWeight: 400, color: '#bfbfbf' }}>/ {deptTotal}</span>
+              </div>
+              <div style={{ fontSize: 12, color: '#bfbfbf', marginTop: 4 }}>hồ sơ cần duyệt</div>
+            </div>
+          </Col>
+        </Row>
 
         {/* ─── BẢNG 1: Danh Sách CV Đang Chờ Thẩm Định (Việc Cần Làm Ngay) ─── */}
         <Card
@@ -575,281 +605,473 @@ const DashboardPage = () => {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // 2. GIAO DIỆN DÀNH CHO HR VÀ ADMIN (Company-wide Dashboard)
+  // 2. GIAO DIỆN DÀNH CHO HR VÀ ADMIN (Enterprise Control Plane - Table-First)
   // ─────────────────────────────────────────────────────────────────────────────
   const totalCvs = (stats?.cvUpdatedCount || 0) + (stats?.cvNotUpdatedCount || 0);
   const updatedPercent = totalCvs > 0 ? Math.round((stats.cvUpdatedCount / totalCvs) * 100) : 0;
+  const deptList = stats?.byDepartment || [];
 
-  // Chuẩn bị dữ liệu cho biểu đồ Recharts
-  const chartData = (stats?.byDepartment || []).map((dept) => ({
-    name: dept.departmentName,
-    'Đã cập nhật': dept.updatedCount,
-    'Chưa cập nhật': dept.notUpdatedCount,
-  }));
+  // Cột cho BẢNG 1: Thống kê tình trạng CV theo phòng ban
+  const deptTableColumns = [
+    {
+      title: 'Phòng Ban Doanh Nghiệp',
+      dataIndex: 'departmentName',
+      key: 'departmentName',
+      render: (name) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <ApartmentOutlined style={{ color: '#1677ff', fontSize: 16 }} />
+          <span style={{ fontWeight: 600, color: '#0f172a', fontSize: 13.5 }}>{name}</span>
+        </div>
+      ),
+    },
+    {
+      title: 'Tổng Nhân Sự Có CV',
+      key: 'total',
+      width: 150,
+      align: 'center',
+      render: (_, record) => {
+        const total = (record.updatedCount || 0) + (record.notUpdatedCount || 0);
+        return <strong style={{ color: '#1e293b' }}>{total} nhân viên</strong>;
+      },
+    },
+    {
+      title: 'CV Đã Cập Nhật',
+      dataIndex: 'updatedCount',
+      key: 'updatedCount',
+      width: 160,
+      align: 'center',
+      render: (count) => (
+        <Tag color="success" style={{ fontWeight: 600, fontSize: 12.5, padding: '2px 10px' }}>
+          {count || 0} hồ sơ
+        </Tag>
+      ),
+    },
+    {
+      title: 'CV Chưa Cập Nhật',
+      dataIndex: 'notUpdatedCount',
+      key: 'notUpdatedCount',
+      width: 180,
+      align: 'center',
+      render: (count) => (
+        <Tag color={count > 0 ? 'warning' : 'default'} style={{ fontWeight: 600, fontSize: 12.5, padding: '2px 10px' }}>
+          {count || 0} hồ sơ
+        </Tag>
+      ),
+    },
+    {
+      title: 'Tỷ Lệ Hoàn Thành',
+      key: 'percent',
+      width: 190,
+      align: 'center',
+      render: (_, record) => {
+        const total = (record.updatedCount || 0) + (record.notUpdatedCount || 0);
+        const percent = total > 0 ? Math.round(((record.updatedCount || 0) / total) * 100) : 0;
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <Progress
+              percent={percent}
+              size="small"
+              strokeColor={percent === 100 ? '#16a34a' : '#1677ff'}
+              style={{ width: 110, margin: 0 }}
+            />
+          </div>
+        );
+      },
+    },
+    {
+      title: 'Trạng Thái',
+      key: 'status',
+      width: 140,
+      align: 'center',
+      render: (_, record) => {
+        const total = (record.updatedCount || 0) + (record.notUpdatedCount || 0);
+        if (total === 0) return <Tag color="default">Chưa có dữ liệu</Tag>;
+        if ((record.notUpdatedCount || 0) === 0) {
+          return <Tag color="success">100% Hoàn thành</Tag>;
+        }
+        return <Tag color="processing">Đang thu thập</Tag>;
+      },
+    },
+    {
+      title: 'Thao Tác',
+      key: 'actions',
+      width: 120,
+      align: 'center',
+      render: (_, record) => (
+        <Button
+          size="small"
+          icon={<EyeOutlined />}
+          onClick={() => navigate('/hr/cv-list', { state: { departmentName: record.departmentName } })}
+          style={{ fontSize: 12, borderRadius: 4 }}
+        >
+          Xem Kho CV
+        </Button>
+      ),
+    },
+  ];
+
+  // Cột cho BẢNG 2: Danh sách bản nháp chờ HR duyệt chót (Trạm 2)
+  const hrPendingColumns = [
+    {
+      title: 'Mã Bản Nháp',
+      dataIndex: 'id',
+      key: 'id',
+      width: 120,
+      render: (id) => <Tag color="blue">#DRAFT-{id}</Tag>,
+    },
+    {
+      title: 'Nhân Viên Nộp Hồ Sơ',
+      dataIndex: 'userFullName',
+      key: 'userFullName',
+      render: (name, record) => (
+        <div>
+          <Text strong style={{ color: '#0f172a', fontSize: 13.5 }}>
+            {record.fullName || name || 'Chưa cập nhật'}
+          </Text>
+          {record.phone && (
+            <div style={{ fontSize: 12, color: '#64748b' }}>SĐT: {record.phone}</div>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: 'Phòng Ban',
+      dataIndex: 'departmentName',
+      key: 'departmentName',
+      width: 180,
+      render: (dept) => (
+        <Tag color="cyan" style={{ fontWeight: 500 }}>
+          {dept || 'Phòng Ban Nội Bộ'}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Tóm Tắt Kỹ Năng / Mục Tiêu',
+      dataIndex: 'summary',
+      key: 'summary',
+      ellipsis: true,
+      render: (summary, record) => (
+        <span title={summary || record.objective || ''}>
+          {summary || record.objective || <Text type="secondary">Chưa cập nhật</Text>}
+        </span>
+      ),
+    },
+    {
+      title: 'Ngày Tech Lead Duyệt',
+      dataIndex: 'updatedAt',
+      key: 'updatedAt',
+      width: 140,
+      render: (date) => (
+        <Text type="secondary" style={{ fontSize: 12.5 }}>
+          {date ? new Date(date).toLocaleDateString('vi-VN') : 'N/A'}
+        </Text>
+      ),
+    },
+    {
+      title: 'Trạng Thái',
+      key: 'status',
+      width: 170,
+      render: () => (
+        <Tag color="processing" icon={<ClockCircleOutlined />}>
+          Chờ HR Duyệt Chót
+        </Tag>
+      ),
+    },
+    {
+      title: 'Thao Tác',
+      key: 'action',
+      width: 120,
+      align: 'center',
+      render: () => (
+        <Button
+          type="primary"
+          size="small"
+          icon={<ArrowRightOutlined />}
+          onClick={() => navigate('/hr/cv-review')}
+          style={{ fontSize: 12.5, borderRadius: 4 }}
+        >
+          Xử Lý Duyệt
+        </Button>
+      ),
+    },
+  ];
+
+  // Cột cho BẢNG 3: Lệnh yêu cầu cập nhật CV gần đây
+  const recentRequestColumns = [
+    {
+      title: 'Mã Lệnh',
+      dataIndex: 'id',
+      key: 'id',
+      width: 100,
+      render: (id) => <Tag color="blue">#REQ-{id}</Tag>,
+    },
+    {
+      title: 'Tên Đợt Thu Thập',
+      dataIndex: 'batchName',
+      key: 'batchName',
+      render: (name) => <strong style={{ color: '#0f172a' }}>{name || 'Đợt cập nhật định kỳ'}</strong>,
+    },
+    {
+      title: 'Nhân Viên Nhận Lệnh',
+      dataIndex: 'targetUserName',
+      key: 'targetUserName',
+      width: 180,
+      render: (name, record) => (
+        <Text strong style={{ color: '#1677ff', fontSize: 13 }}>
+          {name || `User #${record.targetUserId}`}
+        </Text>
+      ),
+    },
+    {
+      title: 'Hạn Chót (Deadline)',
+      dataIndex: 'deadline',
+      key: 'deadline',
+      width: 170,
+      render: (deadline, record) => {
+        if (!deadline) return <Text type="secondary">Không giới hạn</Text>;
+        const d = new Date(deadline);
+        const isLate = d < new Date() && record.status === 'PENDING';
+        return (
+          <Space size={4}>
+            <Text type={isLate ? 'danger' : undefined} strong={isLate} style={{ fontSize: 12.5 }}>
+              {d.toLocaleDateString('vi-VN')} {d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+            </Text>
+            {isLate && <Tag color="error" style={{ margin: 0, padding: '0 4px', fontSize: 10 }}>Quá hạn</Tag>}
+          </Space>
+        );
+      },
+    },
+    {
+      title: 'Trạng Thái Lệnh',
+      dataIndex: 'status',
+      key: 'status',
+      width: 150,
+      align: 'center',
+      render: (status) => {
+        switch (status) {
+          case 'PENDING':
+            return <Tag color="warning" icon={<ClockCircleOutlined />}>Đang Chờ Nộp</Tag>;
+          case 'COMPLETED':
+            return <Tag color="success" icon={<CheckCircleOutlined />}>Đã Hoàn Thành</Tag>;
+          case 'CANCELED':
+            return <Tag color="default">Đã Hủy Lệnh</Tag>;
+          default:
+            return <Tag color="default">{status}</Tag>;
+        }
+      },
+    },
+    {
+      title: 'Thao Tác',
+      key: 'action',
+      width: 110,
+      align: 'center',
+      render: () => (
+        <Button
+          size="small"
+          onClick={() => navigate('/hr/requests')}
+          style={{ fontSize: 12, borderRadius: 4 }}
+        >
+          Quản Lý
+        </Button>
+      ),
+    },
+  ];
 
   return (
     <div>
       {/* ─── Header HR / Admin ─────────────────────────────────────── */}
       <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Title level={4} style={{ margin: 0, fontWeight: 600 }}>
-            Tổng Quan Thống Kê
+          <Title level={4} style={{ margin: 0, fontWeight: 700, color: '#0f172a' }}>
+            Tổng Quan Quản Trị Hồ Sơ Năng Lực
           </Title>
           <Text type="secondary" style={{ fontSize: 13 }}>
-            Báo cáo tổng hợp tình trạng cập nhật hồ sơ năng lực và quy trình duyệt CV toàn doanh nghiệp.
+            Báo cáo tiến độ chuẩn hóa CV và danh sách hồ sơ chờ duyệt.
           </Text>
         </div>
 
-        <Space>
-          <Tag color="blue" style={{ padding: '4px 12px', fontSize: 13, borderRadius: 16 }}>
-            Tỷ lệ hoàn thành: <strong>{updatedPercent}%</strong>
-          </Tag>
-          <button
-            type="button"
+        <Space wrap>
+          {canManageHr && hrPendingDrafts.length > 0 && (
+            <Button
+              type="primary"
+              icon={<SolutionOutlined />}
+              onClick={() => navigate('/hr/cv-review')}
+              style={{ fontWeight: 500, borderRadius: 6 }}
+            >
+              Duyệt CV Chờ Xử Lý ({hrPendingDrafts.length})
+            </Button>
+          )}
+          {canManageHr && (
+            <Button
+              icon={<SendOutlined />}
+              onClick={() => navigate('/hr/requests')}
+              style={{ fontWeight: 500, borderRadius: 6 }}
+            >
+              Quản Lý Lệnh Cập Nhật
+            </Button>
+          )}
+          <Button
+            icon={<ReloadOutlined />}
             onClick={fetchStats}
-            style={{
-              background: '#fff',
-              border: '1px solid #d9d9d9',
-              borderRadius: 6,
-              padding: '4px 12px',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              fontSize: 13,
-            }}
+            style={{ borderRadius: 6 }}
           >
-            <ReloadOutlined /> Làm mới
-          </button>
+            Làm mới
+          </Button>
         </Space>
       </div>
 
-      {/* ─── Hàng Thẻ Chỉ Số KPI Toàn Doanh Nghiệp ──────────────────────── */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
-        {/* Thẻ 1: Tổng nhân viên */}
-        <Col xs={24} sm={12} lg={6}>
-          <Card
-            bordered={false}
-            style={{ borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
-            bodyStyle={{ padding: 20 }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>
-                  Tổng Nhân Viên
-                </Text>
-                <div style={{ fontSize: 26, fontWeight: 700, color: '#1677ff', marginTop: 4 }}>
-                  {stats?.totalEmployees || 0}
-                </div>
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  Tài khoản trong hệ thống
-                </Text>
-              </div>
-              <div
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 8,
-                  backgroundColor: '#e6f4ff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <TeamOutlined style={{ fontSize: 22, color: '#1677ff' }} />
-              </div>
-            </div>
-          </Card>
+      {/* ─── Stat Cards Toàn Doanh Nghiệp ─── */}
+      <Row gutter={[16, 12]} style={{ marginBottom: 20 }}>
+        <Col xs={12} sm={6}>
+          <div style={{ background: '#fff', borderRadius: 8, padding: '16px 20px', borderTop: '3px solid #1677ff', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+            <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 6 }}>Tổng Nhân Sự</div>
+            <div style={{ fontSize: 26, fontWeight: 700, color: '#1677ff', lineHeight: 1 }}>{stats?.totalEmployees || 0}</div>
+            <div style={{ fontSize: 12, color: '#bfbfbf', marginTop: 4 }}>tài khoản hoạt động</div>
+          </div>
         </Col>
-
-        {/* Thẻ 2: CV đã cập nhật */}
-        <Col xs={24} sm={12} lg={6}>
-          <Card
-            bordered={false}
-            style={{ borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
-            bodyStyle={{ padding: 20 }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>
-                  CV Đã Cập Nhật
-                </Text>
-                <div style={{ fontSize: 26, fontWeight: 700, color: '#16a34a', marginTop: 4 }}>
-                  {stats?.cvUpdatedCount || 0}
-                </div>
-                <Text style={{ fontSize: 12, color: '#16a34a' }}>
-                  {updatedPercent}% tổng số hồ sơ
-                </Text>
-              </div>
-              <div
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 8,
-                  backgroundColor: '#f6ffed',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <CheckCircleOutlined style={{ fontSize: 22, color: '#16a34a' }} />
-              </div>
+        <Col xs={12} sm={6}>
+          <div style={{ background: '#fff', borderRadius: 8, padding: '16px 20px', borderTop: '3px solid #52c41a', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+            <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 6 }}>CV Đã Cập Nhật</div>
+            <div style={{ fontSize: 26, fontWeight: 700, color: '#52c41a', lineHeight: 1 }}>
+              {stats?.cvUpdatedCount || 0} <span style={{ fontSize: 14, fontWeight: 400, color: '#bfbfbf' }}>/ {totalCvs} ({updatedPercent}%)</span>
             </div>
-          </Card>
+            <div style={{ fontSize: 12, color: '#bfbfbf', marginTop: 4 }}>hồ sơ hoạt động (Active)</div>
+          </div>
         </Col>
-
-        {/* Thẻ 3: CV chưa cập nhật */}
-        <Col xs={24} sm={12} lg={6}>
-          <Card
-            bordered={false}
-            style={{ borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
-            bodyStyle={{ padding: 20 }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>
-                  CV Chưa Cập Nhật
-                </Text>
-                <div style={{ fontSize: 26, fontWeight: 700, color: '#fa8c16', marginTop: 4 }}>
-                  {stats?.cvNotUpdatedCount || 0}
-                </div>
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  Cần bổ sung / làm mới
-                </Text>
-              </div>
-              <div
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 8,
-                  backgroundColor: '#fff7e6',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <CloseCircleOutlined style={{ fontSize: 22, color: '#fa8c16' }} />
-              </div>
+        <Col xs={12} sm={6}>
+          <div style={{ background: '#fff', borderRadius: 8, padding: '16px 20px', borderTop: '3px solid #fa8c16', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+            <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 6 }}>CV Chưa Cập Nhật</div>
+            <div style={{ fontSize: 26, fontWeight: 700, color: '#fa8c16', lineHeight: 1 }}>
+              {stats?.cvNotUpdatedCount || 0} <span style={{ fontSize: 14, fontWeight: 400, color: '#bfbfbf' }}>/ {totalCvs}</span>
             </div>
-          </Card>
+            <div style={{ fontSize: 12, color: '#bfbfbf', marginTop: 4 }}>cần bổ sung / làm mới</div>
+          </div>
         </Col>
-
-        {/* Thẻ 4: Đang chờ duyệt */}
-        <Col xs={24} sm={12} lg={6}>
-          <Card
-            bordered={false}
-            style={{ borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
-            bodyStyle={{ padding: 20 }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>
-                  Đang Chờ Thẩm Định
-                </Text>
-                <div style={{ fontSize: 26, fontWeight: 700, color: '#0958d9', marginTop: 4 }}>
-                  {stats?.pendingApprovalCount || 0}
-                </div>
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  Tech Lead & HR
-                </Text>
-              </div>
-              <div
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 8,
-                  backgroundColor: '#e6f4ff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <ClockCircleOutlined style={{ fontSize: 22, color: '#0958d9' }} />
-              </div>
+        <Col xs={12} sm={6}>
+          <div style={{ background: '#fff', borderRadius: 8, padding: '16px 20px', borderTop: '3px solid #722ed1', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+            <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 6 }}>Chờ HR Duyệt</div>
+            <div style={{ fontSize: 26, fontWeight: 700, color: '#722ed1', lineHeight: 1 }}>
+              {canManageHr ? hrPendingDrafts.length : (stats?.pendingApprovalCount || 0)} <span style={{ fontSize: 14, fontWeight: 400, color: '#bfbfbf' }}>hồ sơ</span>
             </div>
-          </Card>
+            <div style={{ fontSize: 12, color: '#bfbfbf', marginTop: 4 }}>chờ xử lý</div>
+          </div>
         </Col>
       </Row>
 
-      {/* ─── Thanh Tiến Độ Tổng Thể ─────────────────────────────────── */}
+
+      {/* ─── BẢNG 1: Bảng Giám Sát Hồ Sơ CV Theo Từng Phòng Ban ──────── */}
       <Card
         bordered={false}
-        style={{
-          borderRadius: 8,
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-          marginBottom: 20,
-        }}
+        style={{ borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.04)', marginBottom: 20 }}
         bodyStyle={{ padding: 20 }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <div>
-            <Text strong style={{ fontSize: 14 }}>
-              Tiến Độ Cập Nhật CV Toàn Công Ty
-            </Text>
-            <div style={{ fontSize: 12, color: '#8c8c8c' }}>
-              Dựa trên tỷ lệ nhân viên đã cập nhật và được duyệt phiên bản CV mới nhất
-            </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <ApartmentOutlined style={{ color: '#1677ff', fontSize: 18 }} />
+            <span style={{ fontWeight: 600, fontSize: 15, color: '#0f172a' }}>
+              Tiến Độ Cập Nhật CV Theo Từng Phòng Ban ({deptList.length})
+            </span>
           </div>
-          <Text strong style={{ fontSize: 14, color: '#1677ff' }}>
-            {stats?.cvUpdatedCount || 0} / {totalCvs} CV ({updatedPercent}%)
+          <Text type="secondary" style={{ fontSize: 12.5 }}>
+            Theo dõi chi tiết số lượng và tỷ lệ hoàn thiện hồ sơ của các bộ phận
           </Text>
         </div>
-        <Progress
-          percent={updatedPercent}
-          strokeColor="#16a34a"
-          trailColor="#f0f0f0"
-          strokeWidth={10}
-          status={updatedPercent === 100 ? 'success' : 'active'}
+
+        <Table
+          dataSource={deptList}
+          columns={deptTableColumns}
+          rowKey="departmentName"
+          pagination={false}
+          size="middle"
+          style={{ borderRadius: 8, overflow: 'hidden' }}
+          locale={{ emptyText: <Empty description="Chưa có dữ liệu phòng ban nào trong hệ thống." /> }}
         />
       </Card>
 
-      {/* ─── Biểu Đồ Cột Theo Phòng Ban ─────────────────────────────── */}
-      <Card
-        bordered={false}
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <BarChartOutlined style={{ color: '#1677ff' }} />
-            <span style={{ fontWeight: 600, fontSize: 15 }}>
-              Tỷ Lệ Hồ Sơ CV Theo Từng Phòng Ban
-            </span>
+      {/* ─── BẢNG 2: Bảng Việc Cần Làm Ngay — Bản Nháp Đang Chờ HR Duyệt Chót (Trạm 2) ─── */}
+      {canManageHr && (
+        <Card
+          bordered={false}
+          style={{ borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.04)', marginBottom: 20 }}
+          bodyStyle={{ padding: 20 }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <SolutionOutlined style={{ color: '#1677ff', fontSize: 18 }} />
+              <span style={{ fontWeight: 600, fontSize: 15, color: '#0f172a' }}>
+                Bản Nháp Đang Chờ HR Phê Duyệt
+              </span>
+              <Tag color={hrPendingDrafts.length > 0 ? 'blue' : 'default'} style={{ borderRadius: 10 }}>
+                {hrPendingDrafts.length} hồ sơ cần duyệt
+              </Tag>
+            </div>
+            {hrPendingDrafts.length > 0 && (
+              <Button type="link" onClick={() => navigate('/hr/cv-review')} style={{ padding: 0, fontSize: 13 }}>
+                Xem tất cả tại trang duyệt &rarr;
+              </Button>
+            )}
           </div>
-        }
-        style={{ borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
-        bodyStyle={{ padding: '24px 20px' }}
-      >
-        {chartData.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: '#8c8c8c' }}>
-            Chưa có dữ liệu phòng ban để hiển thị biểu đồ.
-          </div>
-        ) : (
-          <ResponsiveContainer width="100%" height={320}>
-            <BarChart
-              data={chartData}
-              margin={{ top: 10, right: 30, left: 0, bottom: 5 }}
+
+          {hrPendingDrafts.length === 0 ? (
+            <div
+              style={{
+                padding: '36px 20px',
+                textAlign: 'center',
+                background: '#f8fafc',
+                borderRadius: 8,
+                border: '1px dashed #cbd5e1',
+              }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="name" tick={{ fontSize: 13 }} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 13 }} />
-              <Tooltip
-                contentStyle={{ borderRadius: 8, border: '1px solid #e8e8e8', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="Hiện tại không có bản nháp CV nào đang chờ HR duyệt chót."
               />
-              <Legend wrapperStyle={{ paddingTop: 16, fontSize: 13 }} />
-              <Bar
-                dataKey="Đã cập nhật"
-                fill="#16a34a"
-                radius={[4, 4, 0, 0]}
-                maxBarSize={50}
-              />
-              <Bar
-                dataKey="Chưa cập nhật"
-                fill="#fa8c16"
-                radius={[4, 4, 0, 0]}
-                maxBarSize={50}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-      </Card>
+            </div>
+          ) : (
+            <Table
+              dataSource={hrPendingDrafts}
+              columns={hrPendingColumns}
+              rowKey="id"
+              size="small"
+              pagination={{ pageSize: 5, size: 'small', showTotal: (total) => `Tổng ${total} hồ sơ` }}
+              style={{ borderRadius: 8, overflow: 'hidden' }}
+            />
+          )}
+        </Card>
+      )}
+
+      {/* ─── BẢNG 3: Bảng Tình Trạng Các Đợt Phát Lệnh Thu Thập CV Gần Đây ─── */}
+      {canManageHr && recentRequests.length > 0 && (
+        <Card
+          bordered={false}
+          style={{ borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
+          bodyStyle={{ padding: 20 }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <SendOutlined style={{ color: '#1677ff', fontSize: 18 }} />
+              <span style={{ fontWeight: 600, fontSize: 15, color: '#0f172a' }}>
+                Tiến Độ Các Đợt Phát Lệnh Thu Thập CV Gần Đây
+              </span>
+              <Tag color="cyan" style={{ borderRadius: 10 }}>
+                {recentRequests.length} lệnh phát
+              </Tag>
+            </div>
+            <Button type="link" onClick={() => navigate('/hr/requests')} style={{ padding: 0, fontSize: 13 }}>
+              Xem toàn bộ lệnh thu thập &rarr;
+            </Button>
+          </div>
+
+          <Table
+            dataSource={recentRequests.slice(0, 5)}
+            columns={recentRequestColumns}
+            rowKey="id"
+            size="small"
+            pagination={false}
+            style={{ borderRadius: 8, overflow: 'hidden' }}
+          />
+        </Card>
+      )}
     </div>
   );
 };

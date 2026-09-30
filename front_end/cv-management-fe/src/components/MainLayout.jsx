@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Layout, Menu, Typography, Avatar, Tag, Dropdown, Badge, Button, Popover, Space, Breadcrumb, Empty } from 'antd';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Layout, Menu, Typography, Avatar, Tag, Dropdown, Badge, Button, Popover, Tooltip, Empty, List, Spin, Breadcrumb, message as antdMessage } from 'antd';
 import {
   DashboardOutlined,
   FileTextOutlined,
@@ -15,6 +15,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import EcmLogo from './common/EcmLogo';
+import notificationApi from '../api/notificationApi';
 
 const { Header, Sider, Content } = Layout;
 const { Text, Title } = Typography;
@@ -31,9 +32,71 @@ const MainLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // ─── Notification State ───────────────────────────────────────
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifLoading, setNotifLoading] = useState(false);
+  const [bellOpen, setBellOpen] = useState(false);
+  const pollingRef = useRef(null);
+  // ─────────────────────────────────────────────────────────────
+
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const userRole = user.role || 'EMPLOYEE';
   const displayName = (user.fullName || user.username || 'Tài khoản').replace(/\s*\(Employee\)/gi, '').trim();
+
+  // ─── Notification API handlers ────────────────────────────────
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const [listRes, countRes] = await Promise.all([
+        notificationApi.getMyNotifications(),
+        notificationApi.getUnreadCount(),
+      ]);
+      // axiosClient trả về response.data (= ApiResponse object)
+      // ApiResponse có dạng { success: true, data: [...], message: '...' }
+      setNotifications(listRes?.data || []);
+      setUnreadCount(Number(countRes?.data) || 0);
+    } catch (_) {
+      // silent fail — không làm phiền user nếu backend chưa sẵn sàng
+    }
+  }, []);
+
+  // Polling mỗi 30 giây
+  useEffect(() => {
+    fetchNotifications();
+    pollingRef.current = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(pollingRef.current);
+  }, [fetchNotifications]);
+
+  const handleBellOpenChange = (open) => {
+    setBellOpen(open);
+    if (open) {
+      setNotifLoading(true);
+      fetchNotifications().finally(() => setNotifLoading(false));
+    }
+  };
+
+  const handleMarkAsRead = async (id) => {
+    try {
+      await notificationApi.markAsRead(id);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+      );
+      setUnreadCount((c) => Math.max(0, c - 1));
+    } catch (_) {
+      antdMessage.error('Không thể đánh dấu đã đọc');
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await notificationApi.markAllAsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    } catch (_) {
+      antdMessage.error('Có lỗi xảy ra');
+    }
+  };
+  // ─────────────────────────────────────────────────────────────
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -90,22 +153,22 @@ const MainLayout = () => {
         {
           key: '/hr/cv-review',
           icon: <SolutionOutlined />,
-          label: 'HR Duyệt CV (Trạm 2)',
+          label: 'Phê Duyệt CV',
         },
         {
           key: '/hr/cv-list',
           icon: <FileTextOutlined />,
-          label: 'Danh Sách CV Toàn Bộ',
+          label: 'Danh Sách CV',
         },
         {
           key: '/hr/requests',
           icon: <SendOutlined />,
-          label: 'Quản Lý Yêu Cầu CV',
+          label: 'Yêu Cầu Cập Nhật',
         }
       );
     }
 
-    // Menu dành cho TECH LEAD (Đánh giá chuyên môn Trạm 1)
+    // Menu dành cho TECH LEAD (Thẩm định chuyên môn)
     if (userRole === 'TECH_LEAD') {
       items.push({
         key: '/techlead/evaluations',
@@ -114,9 +177,14 @@ const MainLayout = () => {
       });
     }
 
-    // Menu dành cho ADMIN (Quản lý User & Phòng ban)
+    // Menu dành cho ADMIN (Quản lý User & Phòng ban & Kho CV Toàn Doanh Nghiệp)
     if (userRole === 'ADMIN') {
       items.push(
+        {
+          key: '/hr/cv-list',
+          icon: <FileTextOutlined />,
+          label: 'Kho Hồ Sơ CV',
+        },
         {
           key: '/admin/users',
           icon: <TeamOutlined />,
@@ -147,17 +215,81 @@ const MainLayout = () => {
     }
   };
 
+  // ─── Notification Popover Content ─────────────────────────────
   const notificationContent = (
-    <div style={{ width: 280, padding: '4px 0' }}>
-      <div style={{ padding: '0 8px 8px 8px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text strong>Thông Báo Hệ Thống</Text>
-        <Text type="secondary" style={{ fontSize: 12 }}>0 chưa đọc</Text>
+    <div style={{ width: 340, maxHeight: 440, display: 'flex', flexDirection: 'column' }}>
+      {/* Header */}
+      <div style={{
+        padding: '10px 14px 8px',
+        borderBottom: '1px solid #f0f0f0',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexShrink: 0,
+      }}>
+        <Text strong style={{ fontSize: 14 }}>Thông Báo Hệ Thống</Text>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {unreadCount > 0 ? `${unreadCount} chưa đọc` : 'Đã đọc tất cả'}
+          </Text>
+          {unreadCount > 0 && (
+            <Button type="link" size="small" style={{ padding: 0, fontSize: 12 }} onClick={handleMarkAllAsRead}>
+              Đọc tất cả
+            </Button>
+          )}
+        </div>
       </div>
-      <div style={{ padding: '24px 8px', textAlign: 'center' }}>
-        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Không có thông báo mới nào" />
+
+      {/* Body */}
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        {notifLoading ? (
+          <div style={{ padding: 32, textAlign: 'center' }}><Spin /></div>
+        ) : notifications.length === 0 ? (
+          <div style={{ padding: 24 }}>
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Không có thông báo nào" />
+          </div>
+        ) : (
+          <List
+            dataSource={notifications}
+            renderItem={(item) => (
+              <List.Item
+                key={item.id}
+                style={{
+                  padding: '10px 14px',
+                  background: item.isRead ? '#fff' : '#f0f7ff',
+                  cursor: item.isRead ? 'default' : 'pointer',
+                  borderBottom: '1px solid #f5f5f5',
+                  alignItems: 'flex-start',
+                }}
+                onClick={() => !item.isRead && handleMarkAsRead(item.id)}
+              >
+                <div style={{ width: '100%' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                    <Text strong style={{ fontSize: 13, color: item.isRead ? '#595959' : '#1677ff' }}>
+                      {item.title}
+                    </Text>
+                    {!item.isRead && (
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#1677ff', flexShrink: 0, marginLeft: 6 }} />
+                    )}
+                  </div>
+                  <Text type="secondary" style={{ fontSize: 12, lineHeight: '1.4' }}>
+                    {item.message}
+                  </Text>
+                  <div style={{ marginTop: 4 }}>
+                    <Text type="secondary" style={{ fontSize: 11 }}>
+                      {item.createdAt ? new Date(item.createdAt).toLocaleString('vi-VN') : ''}
+                    </Text>
+                  </div>
+                </div>
+              </List.Item>
+            )}
+          />
+        )}
       </div>
     </div>
   );
+  // ─────────────────────────────────────────────────────────────
+
 
   const userDropdownItems = [
     {
@@ -299,8 +431,14 @@ const MainLayout = () => {
           {/* Cụm Phải: Notification + User Profile */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             {/* Chuông Thông báo Popover */}
-            <Popover content={notificationContent} trigger="click" placement="bottomRight">
-              <Badge count={0} size="small" offset={[-2, 2]}>
+            <Popover
+              content={notificationContent}
+              trigger="click"
+              placement="bottomRight"
+              open={bellOpen}
+              onOpenChange={handleBellOpenChange}
+            >
+              <Badge count={unreadCount} size="small" offset={[-2, 2]} overflowCount={99}>
                 <Button
                   type="text"
                   shape="circle"
