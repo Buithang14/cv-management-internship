@@ -257,6 +257,23 @@ const HrReviewPage = () => {
       ),
     },
     {
+      title: 'Ngôn Ngữ',
+      dataIndex: 'language',
+      key: 'language',
+      width: 130,
+      render: (lang, record) => {
+        const flag = record.languageFlag || (lang === 'EN' ? '🇬🇧' : lang === 'JA' ? '🇯🇵' : '🇻🇳');
+        const label = record.languageLabel || (lang === 'EN' ? 'Tiếng Anh' : lang === 'JA' ? 'Tiếng Nhật' : 'Tiếng Việt');
+        const color = lang === 'EN' ? 'green' : lang === 'JA' ? 'orange' : 'blue';
+        return (
+          <Tag color={color} style={{ borderRadius: 4, fontWeight: 500 }}>
+            <span style={{ marginRight: 4 }}>{flag}</span>
+            {label}
+          </Tag>
+        );
+      },
+    },
+    {
       title: 'Phòng Ban',
       dataIndex: 'departmentName',
       key: 'departmentName',
@@ -339,6 +356,23 @@ const HrReviewPage = () => {
           <Text strong style={{ color: '#0f172a' }}>{name || 'Chưa cập nhật'}</Text>
         </div>
       ),
+    },
+    {
+      title: 'Ngôn Ngữ',
+      dataIndex: 'language',
+      key: 'language',
+      width: 130,
+      render: (lang, record) => {
+        const flag = record.languageFlag || (lang === 'EN' ? '🇬🇧' : lang === 'JA' ? '🇯🇵' : '🇻🇳');
+        const label = record.languageLabel || (lang === 'EN' ? 'Tiếng Anh' : lang === 'JA' ? 'Tiếng Nhật' : 'Tiếng Việt');
+        const color = lang === 'EN' ? 'green' : lang === 'JA' ? 'orange' : 'blue';
+        return (
+          <Tag color={color} style={{ borderRadius: 4 }}>
+            <span style={{ marginRight: 4 }}>{flag}</span>
+            {label}
+          </Tag>
+        );
+      },
     },
     {
       title: 'Kết Quả HR',
@@ -549,11 +583,16 @@ const HrReviewPage = () => {
       {/* MODAL XEM CHI TIẾT & SO SÁNH CV (DIFF & PREVIEW) */}
       <Modal
         title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <FileDoneOutlined style={{ color: '#1677ff', fontSize: 18 }} />
             <Text strong style={{ fontSize: 16, color: '#0f172a' }}>
               Duyệt CV — {selectedDraft?.fullName || selectedDraft?.userFullName} (#{selectedDraft?.id})
             </Text>
+            {selectedDraft?.language && (
+              <Tag color={selectedDraft.language === 'EN' ? 'green' : selectedDraft.language === 'JA' ? 'orange' : 'blue'} style={{ borderRadius: 4, marginLeft: 6 }}>
+                {selectedDraft.languageFlag} {selectedDraft.languageLabel}
+              </Tag>
+            )}
           </div>
         }
         open={previewModalOpen}

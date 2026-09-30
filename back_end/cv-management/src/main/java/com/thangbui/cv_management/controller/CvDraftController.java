@@ -18,6 +18,9 @@ import com.thangbui.cv_management.dto.response.CvDraftDTO;
 import com.thangbui.cv_management.security.CustomUserDetails;
 import com.thangbui.cv_management.services.CvDraftService;
 
+import org.springframework.web.bind.annotation.RequestParam;
+import com.thangbui.cv_management.enums.CvLanguage;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import java.util.List;
@@ -29,15 +32,31 @@ public class CvDraftController {
     private final CvDraftService cvDraftService;
 
     /**
-     * UC03: Khởi tạo bản nháp CV (clone từ CV gốc hoặc lấy bản nháp đang soạn dở)
+     * UC03: Khởi tạo bản nháp CV (clone từ CV gốc hoặc lấy bản nháp đang soạn dở theo ngôn ngữ)
      * Endpoint: POST /api/v1/cv-drafts/init
      */
     @PostMapping("/init")
     @PreAuthorize("hasRole('EMPLOYEE')")
-    public ResponseEntity<ApiResponse<CvDraftDTO>> initDraft(@AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ResponseEntity<ApiResponse<CvDraftDTO>> initDraft(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(value = "language", required = false, defaultValue = "VI") CvLanguage language) {
         Long userId = userDetails.getId();
-        CvDraftDTO cvDraftDTO = cvDraftService.initDraft(userId);
+        CvDraftDTO cvDraftDTO = cvDraftService.initDraft(userId, language);
         return ResponseEntity.ok(ApiResponse.success("Khởi tạo bản nháp thành công", cvDraftDTO));
+    }
+
+    /**
+     * Đồng bộ cấu trúc khung (Skeleton) từ CV Tiếng Việt sang bản dịch (EN/JA)
+     * Endpoint: POST /api/v1/cv-drafts/{id}/sync-skeleton
+     */
+    @PostMapping("/{id}/sync-skeleton")
+    @PreAuthorize("hasRole('EMPLOYEE')")
+    public ResponseEntity<ApiResponse<CvDraftDTO>> syncSkeleton(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable("id") Long id) {
+        Long userId = userDetails.getId();
+        CvDraftDTO cvDraftDTO = cvDraftService.syncSkeletonFromMaster(userId, id);
+        return ResponseEntity.ok(ApiResponse.success("Đồng bộ khung cấu trúc thành công", cvDraftDTO));
     }
 
     /**
@@ -76,9 +95,10 @@ public class CvDraftController {
     @GetMapping("/my-logs")
     @PreAuthorize("hasRole('EMPLOYEE')")
     public ResponseEntity<ApiResponse<List<CvApprovalLogDTO>>> getMyDraftApprovalLogs(
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(value = "language", required = false) CvLanguage language) {
         Long currentUserId = userDetails.getId();
-        List<CvApprovalLogDTO> logs = cvDraftService.getMyDraftApprovalLogs(currentUserId);
+        List<CvApprovalLogDTO> logs = cvDraftService.getMyDraftApprovalLogs(currentUserId, language);
         return ResponseEntity.ok(ApiResponse.success("Lấy lịch sử phê duyệt thành công", logs));
     }
 

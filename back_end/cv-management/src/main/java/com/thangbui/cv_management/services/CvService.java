@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.thangbui.cv_management.dto.response.CvDTO;
 import com.thangbui.cv_management.entity.Cv;
 import com.thangbui.cv_management.entity.User;
+import com.thangbui.cv_management.enums.CvLanguage;
 import com.thangbui.cv_management.enums.CvStatus;
 import com.thangbui.cv_management.exception.AppException;
 import com.thangbui.cv_management.repositorys.CvRepository;
@@ -23,15 +24,36 @@ public class CvService {
     private final CvRepository cvRepository;
     private final UserRepository userRepository;
 
-    // lấy cv đang hoạt động của user hiện tại
-
+    // lấy cv đang hoạt động của user hiện tại (mặc định Tiếng Việt)
     public CvDTO getMyCv(Long userId) {
-        // 1. tìm cv trong db theo userId và isActive = true
-        Cv cv = cvRepository.findByUserIdAndIsActiveTrue(userId)
-                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Không tìm thấy CV nào trong hệ thống"));
+        return getMyCv(userId, CvLanguage.VI);
+    }
 
-        // 2.chuyển đổi Entity sang DTO để trả về
+    // Lấy CV đang hoạt động theo ngôn ngữ cụ thể
+    public CvDTO getMyCv(Long userId, CvLanguage language) {
+        if (language == null) {
+            language = CvLanguage.VI;
+        }
+        Cv cv = cvRepository.findFirstByUserIdAndLanguageAndIsActiveTrueOrderByVersionDesc(userId, language)
+                .orElse(null);
+        if (cv == null && language == CvLanguage.VI) {
+            // fallback cho data cũ chưa có cột language
+            cv = cvRepository.findFirstByUserIdAndLanguageIsNullAndIsActiveTrue(userId).orElse(null);
+        }
+        if (cv == null) {
+            throw new AppException(HttpStatus.NOT_FOUND, "Không tìm thấy CV " + language.getLabel() + " nào trong hệ thống");
+        }
         return mapToDTO(cv);
+    }
+
+    // Lấy danh sách ngôn ngữ mà nhân viên đã có CV active
+    // (bao gồm cả data cũ language=null, được map sang VI)
+    public List<CvLanguage> getActiveLanguages(Long userId) {
+        List<Cv> cvs = cvRepository.findAllByUserIdAndIsActiveTrue(userId);
+        return cvs.stream()
+                .map(cv -> cv.getLanguage() != null ? cv.getLanguage() : CvLanguage.VI)
+                .distinct()
+                .toList();
     }
 
     /**
@@ -77,6 +99,7 @@ public class CvService {
         }
         dto.setVersion(cv.getVersion());
         dto.setOverallStatus(cv.getOverallStatus());
+        dto.setLanguage(cv.getLanguage());
         dto.setAvatarUrl(cv.getAvatarUrl());
         dto.setPhone(cv.getPhone());
         dto.setSummary(cv.getSummary());

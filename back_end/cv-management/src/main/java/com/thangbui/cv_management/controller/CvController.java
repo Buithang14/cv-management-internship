@@ -17,6 +17,9 @@ import java.util.List;
 
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.web.bind.annotation.RequestParam;
+import com.thangbui.cv_management.enums.CvLanguage;
+
 @RestController
 @RequestMapping("/api/v1/cvs")
 @RequiredArgsConstructor
@@ -34,9 +37,19 @@ public class CvController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<ApiResponse<CvDTO>> getMyCv(@AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ResponseEntity<ApiResponse<CvDTO>> getMyCv(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(value = "language", required = false, defaultValue = "VI") CvLanguage language) {
         Long userId = userDetails.getId();
-        CvDTO cvDTO = cvsService.getMyCv(userId);
+        CvDTO cvDTO = cvsService.getMyCv(userId, language);
         return ResponseEntity.ok(ApiResponse.success("Lấy CV thành công", cvDTO));
+    }
+
+    @GetMapping("/languages/me")
+    public ResponseEntity<ApiResponse<List<CvLanguage>>> getMyActiveLanguages(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long userId = userDetails.getId();
+        List<CvLanguage> languages = cvsService.getActiveLanguages(userId);
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách ngôn ngữ hoạt động thành công", languages));
     }
 }

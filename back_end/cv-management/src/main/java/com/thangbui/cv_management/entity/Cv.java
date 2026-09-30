@@ -1,5 +1,6 @@
 package com.thangbui.cv_management.entity;
 
+import com.thangbui.cv_management.enums.CvLanguage;
 import com.thangbui.cv_management.enums.CvStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -24,13 +25,18 @@ public class Cv extends BaseEntity {
 
     // ===================== CÁC FIELD THƯỜNG =====================
 
+    // Ngôn ngữ của CV: VI (mặc định), EN, JA
+    @Enumerated(EnumType.STRING)
+    @Column(name = "language", nullable = false, length = 10)
+    private CvLanguage language = CvLanguage.VI;
+
     // Số thứ tự phiên bản: 1 → 2 → 3...
     // Mỗi lần HR duyệt chót bản nháp, version tăng thêm 1
     @Column(name = "version")
     private Integer version = 1;
 
     // Phiên bản này có đang được dùng không?
-    // true = Active (phiên bản hiện hành, chỉ có 1 row true/user)
+    // true = Active (phiên bản hiện hành, chỉ có 1 row true/user/language)
     // false = Archived (phiên bản cũ, lưu lại để tra cứu lịch sử)
     @Column(name = "is_active")
     private Boolean isActive = true;

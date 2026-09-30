@@ -51,7 +51,7 @@ public class CvUpdateRequestService {
          updateRequest.setStatus(RequestStatus.PENDING);
          CvUpdateRequest savedRequest = cvUpdateRequestRepository.save(updateRequest);
          // b. Đổi trạng thái CV gốc của nhân viên thành NOT_UPDATED (nếu nhân viên đã có CV gốc)
-         cvRepository.findByUserIdAndIsActiveTrue(targetUserId).ifPresent(cv -> {
+         cvRepository.findAllByUserIdAndIsActiveTrue(targetUserId).forEach(cv -> {
             cv.setOverallStatus(CvStatus.NOT_UPDATED);
             cvRepository.save(cv);
          });
@@ -119,7 +119,7 @@ public class CvUpdateRequestService {
       CvUpdateRequest savedRequest = cvUpdateRequestRepository.save(req);
 
       // 4b. Xóa trạng thái yêu cầu cho nhân viên (NOT_UPDATED -> REQUEST_CANCELED)
-      cvRepository.findByUserIdAndIsActiveTrue(req.getTargetUser().getId()).ifPresent(cv -> {
+      cvRepository.findAllByUserIdAndIsActiveTrue(req.getTargetUser().getId()).forEach(cv -> {
          cv.setOverallStatus(CvStatus.REQUEST_CANCELED);
          cvRepository.save(cv);
       });

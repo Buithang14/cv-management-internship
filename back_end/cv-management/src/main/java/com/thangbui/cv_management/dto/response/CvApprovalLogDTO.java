@@ -2,6 +2,7 @@ package com.thangbui.cv_management.dto.response;
 
 import com.thangbui.cv_management.entity.CvApprovalLog;
 import com.thangbui.cv_management.enums.ApprovalAction;
+import com.thangbui.cv_management.enums.CvLanguage;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -30,6 +31,11 @@ public class CvApprovalLogDTO {
     private Long draftId;
     private String draftUserFullName;
 
+    // Ngôn ngữ của bản nháp
+    private CvLanguage language;
+    private String languageLabel;
+    private String languageFlag;
+
     /**
      * Thông tin người duyệt (Tech Lead ở Trạm 1 hoặc HR ở Trạm 2).
      * Làm phẳng dữ liệu User (approverId + approverName) để tránh vòng lặp JSON.
@@ -55,9 +61,16 @@ public class CvApprovalLogDTO {
 
     public CvApprovalLogDTO(CvApprovalLog log) {
         this.id = log.getId();
-        this.draftId = log.getDraft() != null ? log.getDraft().getId() : null;
-        if (log.getDraft() != null && log.getDraft().getUser() != null) {
-            this.draftUserFullName = log.getDraft().getUser().getFullName();
+        if (log.getDraft() != null) {
+            this.draftId = log.getDraft().getId();
+            this.language = log.getDraft().getLanguage();
+            if (this.language != null) {
+                this.languageLabel = this.language.getLabel();
+                this.languageFlag = this.language.getFlag();
+            }
+            if (log.getDraft().getUser() != null) {
+                this.draftUserFullName = log.getDraft().getUser().getFullName();
+            }
         }
         if (log.getApprover() != null) {
             this.approverId = log.getApprover().getId();

@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import com.thangbui.cv_management.entity.CvDraft;
+import com.thangbui.cv_management.enums.CvLanguage;
 import com.thangbui.cv_management.enums.DraftStatus;
 import java.util.List;
 
@@ -19,6 +20,15 @@ public interface CvDraftRepository extends JpaRepository<CvDraft, Long> {
     public Optional<CvDraft> findFirstByUserIdOrderByUpdatedAtDesc(Long userId);
 
     public boolean existsByUserIdAndStatusIn(Long userId, List<DraftStatus> statuses);
+
+    // Queries theo ngôn ngữ (Localization)
+    public Optional<CvDraft> findByUserIdAndLanguageAndStatus(Long userId, CvLanguage language, DraftStatus status);
+
+    public Optional<CvDraft> findFirstByUserIdAndLanguageAndStatusInOrderByUpdatedAtDesc(Long userId, CvLanguage language, List<DraftStatus> statuses);
+
+    public Optional<CvDraft> findFirstByUserIdAndLanguageOrderByUpdatedAtDesc(Long userId, CvLanguage language);
+
+    public boolean existsByUserIdAndLanguageAndStatusIn(Long userId, CvLanguage language, List<DraftStatus> statuses);
 
     public List<CvDraft> findByStatusAndUserDepartmentId(DraftStatus status, Long departmentId);
 

@@ -1,5 +1,6 @@
 package com.thangbui.cv_management.entity;
 
+import com.thangbui.cv_management.enums.CvLanguage;
 import com.thangbui.cv_management.enums.DraftStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -23,6 +24,11 @@ public class CvDraft extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    // Ngôn ngữ của bản nháp: VI (mặc định), EN, JA
+    @Enumerated(EnumType.STRING)
+    @Column(name = "language", nullable = false, length = 10)
+    private CvLanguage language = CvLanguage.VI;
 
     // Yêu cầu cập nhật nào tạo ra bản nháp này?
     // nullable = true → nhân viên có thể tự giác tạo nháp (không cần HR phát lệnh)

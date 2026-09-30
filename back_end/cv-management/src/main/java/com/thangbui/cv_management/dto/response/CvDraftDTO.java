@@ -1,5 +1,6 @@
 package com.thangbui.cv_management.dto.response;
 
+import com.thangbui.cv_management.enums.CvLanguage;
 import com.thangbui.cv_management.enums.DraftStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -22,6 +23,9 @@ public class CvDraftDTO {
     private String userFullName;
     private String departmentName;
     private String email;
+
+    // Ngôn ngữ của bản nháp
+    private CvLanguage language;
 
     // Các khóa ngoại liên quan
     private Long requestId;     // ID của yêu cầu cập nhật CV (nếu có)
@@ -46,6 +50,14 @@ public class CvDraftDTO {
 
     public String getStatusDescription() {
         return status != null ? status.getDescription() : null;
+    }
+
+    public String getLanguageLabel() {
+        return language != null ? language.getLabel() : null;
+    }
+
+    public String getLanguageFlag() {
+        return language != null ? language.getFlag() : null;
     }
 
 }

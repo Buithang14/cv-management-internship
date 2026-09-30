@@ -37,4 +37,17 @@ public interface CvApprovalLogRepository extends JpaRepository<CvApprovalLog, Lo
            "WHERE l.action IN :actions " +
            "ORDER BY l.createdAt DESC")
     List<CvApprovalLog> findByActions(@Param("actions") List<ApprovalAction> actions);
+    /**
+     * Lấy toàn bộ lịch sử phê duyệt của một user theo ngôn ngữ,
+     * gộp từ TẤT CẢ bản nháp (không chỉ bản nháp mới nhất),
+     * sắp xếp theo thời gian tăng dần.
+     */
+    @Query("SELECT l FROM CvApprovalLog l " +
+           "WHERE l.draft.user.id = :userId " +
+           "AND (:language IS NULL OR l.draft.language = :language) " +
+           "ORDER BY l.createdAt ASC")
+    List<CvApprovalLog> findAllByUserIdAndLanguage(
+            @Param("userId") Long userId,
+            @Param("language") com.thangbui.cv_management.enums.CvLanguage language);
 }
+

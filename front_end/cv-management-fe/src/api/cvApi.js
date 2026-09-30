@@ -5,14 +5,24 @@ import axiosClient from './axiosClient';
  * Tương ứng với CvController và CvDraftController ở Back-End Spring Boot
  */
 const cvApi = {
-  // UC02: Xem CV cá nhân đang hoạt động (GET /api/v1/cvs/me)
-  getMyCv: () => {
-    return axiosClient.get('/cvs/me');
+  // UC02: Xem CV cá nhân đang hoạt động (GET /api/v1/cvs/me?language=VI)
+  getMyCv: (language = 'VI') => {
+    return axiosClient.get(`/cvs/me?language=${language}`);
   },
 
-  // UC03: Khởi tạo hoặc lấy bản nháp CV dở dang (POST /api/v1/cv-drafts/init)
-  initDraft: () => {
-    return axiosClient.post('/cv-drafts/init');
+  // Lấy các ngôn ngữ đã có CV active (GET /api/v1/cvs/languages/me)
+  getMyActiveLanguages: () => {
+    return axiosClient.get('/cvs/languages/me');
+  },
+
+  // UC03: Khởi tạo hoặc lấy bản nháp CV dở dang theo ngôn ngữ (POST /api/v1/cv-drafts/init?language=VI)
+  initDraft: (language = 'VI') => {
+    return axiosClient.post(`/cv-drafts/init?language=${language}`);
+  },
+
+  // Đồng bộ cấu trúc khung từ CV Tiếng Việt sang bản dịch (POST /api/v1/cv-drafts/{id}/sync-skeleton)
+  syncSkeleton: (id) => {
+    return axiosClient.post(`/cv-drafts/${id}/sync-skeleton`);
   },
 
   // UC04: Chỉnh sửa nội dung bản nháp (PUT /api/v1/cv-drafts/{id})
@@ -31,8 +41,9 @@ const cvApi = {
   },
 
   // Xem lịch sử phê duyệt bản nháp cá nhân hiện tại (GET /api/v1/cv-drafts/my-logs)
-  getMyDraftLogs: () => {
-    return axiosClient.get('/cv-drafts/my-logs');
+  getMyDraftLogs: (language) => {
+    const query = language ? `?language=${language}` : '';
+    return axiosClient.get(`/cv-drafts/my-logs${query}`);
   },
 
     // Upload ảnh đại diện Avatar lên server (POST /api/v1/files/upload)

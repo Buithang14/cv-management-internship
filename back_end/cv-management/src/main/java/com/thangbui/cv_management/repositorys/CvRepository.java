@@ -1,6 +1,7 @@
 package com.thangbui.cv_management.repositorys;
 
 import com.thangbui.cv_management.entity.Cv;
+import com.thangbui.cv_management.enums.CvLanguage;
 import com.thangbui.cv_management.enums.CvStatus;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,9 +18,21 @@ import java.util.Optional;
 @Repository
 public interface CvRepository extends JpaRepository<Cv, Long> {
 
-    // tìm theo id của user và isActive = true , tức là bản còn khả dụng
+    // tìm theo id của user và isActive = true
+    Optional<Cv> findFirstByUserIdAndIsActiveTrue(Long userId);
 
-    Optional<Cv> findByUserIdAndIsActiveTrue(Long userId);
+    default Optional<Cv> findByUserIdAndIsActiveTrue(Long userId) {
+        return findFirstByUserIdAndIsActiveTrue(userId);
+    }
+
+    // Fallback cho dữ liệu cũ (language IS NULL)
+    Optional<Cv> findFirstByUserIdAndLanguageIsNullAndIsActiveTrue(Long userId);
+
+    // Tìm CV đang active theo user và ngôn ngữ cụ thể (luôn lấy version mới nhất để tránh crash)
+    Optional<Cv> findFirstByUserIdAndLanguageAndIsActiveTrueOrderByVersionDesc(Long userId, CvLanguage language);
+
+    // Lấy tất cả CV đang active của 1 user (để kiểm tra xem user có những ngôn ngữ nào)
+    List<Cv> findAllByUserIdAndIsActiveTrue(Long userId);
 
     /**
      * UC13: HR xem và lọc toàn bộ CV của công ty
