@@ -6,7 +6,7 @@ Hệ thống quản lý CV nội bộ doanh nghiệp hỗ trợ tạo, cập nh�
 
 ## 🔗 Tài Nguyên & Tài Liệu Dự Án
 
-* **Google Drive Folder (Tài liệu & Thiết kế)**: [https://drive.google.com/drive/folders/1fABjFNwODD4EcZEPdpNNX1YtJxzPly2S?usp=sharing](https://drive.google.com/drive/folders/1fABjFNwODD4EcZEPdpNNX1YtJxzPly2S?usp=sharing)
+* **Google Drive Link video demo dự án**: [https://drive.google.com/drive/folders/1fABjFNwODD4EcZEPdpNNX1YtJxzPly2S?usp=sharing](https://drive.google.com/drive/folders/1fABjFNwODD4EcZEPdpNNX1YtJxzPly2S?usp=sharing)
 * **Tài liệu hệ thống (Chi tiết)**: Cấu trúc và mô tả ca sử dụng xem tại thư mục [`docs/`](docs/README.md).
 
 ---
