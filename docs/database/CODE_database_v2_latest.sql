@@ -161,3 +161,10 @@ ALTER TABLE `cv_approval_logs`   ADD FOREIGN KEY (`draft_id`)        REFERENCES 
 ALTER TABLE `cv_approval_logs`   ADD FOREIGN KEY (`approver_id`)     REFERENCES `users` (`id`);
 
 ALTER TABLE `notifications`      ADD FOREIGN KEY (`user_id`)         REFERENCES `users` (`id`);
+
+
+
+INSERT INTO departments (id, code, name) VALUES (1, 'IT', 'Phòng IT');
+
+INSERT INTO users (department_id, username, password, full_name, email) 
+VALUES (1, 'tech_lead', '$2a$10$slYQmyNdGzTn7ZLBBDChVuGOTy9tptP.p./G528J.D8w/Qx6Xb7mO', 'Trưởng phòng IT', 'techlead@gmail.com');
